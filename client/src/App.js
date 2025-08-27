@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -164,7 +164,11 @@ const MartyrsPage = () => {
                 placeData = { state: martyr.place_of_martyrdom, area: '' };
               }
               return (
-                <div key={martyr.id} className="bg-white rounded-2xl shadow-xl border-2 border-green-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <Link 
+                  to={`/martyr/${martyr.id}`} 
+                  key={martyr.id} 
+                  className="block bg-white rounded-2xl shadow-xl border-2 border-green-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer"
+                >
                   {martyr.image_url && (
                     <div className="h-56 bg-gray-200">
                       <img 
@@ -192,13 +196,9 @@ const MartyrsPage = () => {
                       }</p>
                       <p><span className="font-semibold text-green-700">المهنة:</span> {martyr.occupation}</p>
                     </div>
-                    {martyr.bio && (
-                      <p className="mt-6 text-gray-700 text-sm bg-green-50 p-4 rounded-lg border border-green-200">
-                        {martyr.bio}
-                      </p>
-                    )}
+
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -329,6 +329,14 @@ const MapPage = () => {
                       {martyr.bio && (
                         <p className="text-sm mt-2">{martyr.bio.substring(0, 100)}...</p>
                       )}
+                      <div className="mt-3">
+                        <Link 
+                          to={`/martyr/${martyr.id}`}
+                          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                        >
+                          عرض التفاصيل
+                        </Link>
+                      </div>
                     </div>
                   </Popup>
                 </Marker>
@@ -1302,6 +1310,218 @@ const AddMartyrPage = () => {
     );
   };
 
+const MartyrDetailPage = () => {
+  const [martyr, setMartyr] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { id } = useParams();
+
+  useEffect(() => {
+    fetchMartyr();
+  }, [id]);
+
+  const fetchMartyr = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/martyrs/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch martyr details');
+      }
+      const data = await response.json();
+      setMartyr(data.martyr);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto"></div>
+          <p className="mt-6 text-gray-600 text-lg">جاري تحميل تفاصيل الشهيد...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">خطأ</h1>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!martyr) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-600 mb-4">لم يتم العثور على الشهيد</h1>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle place_of_martyrdom - it could be a string or JSON
+  let placeData;
+  try {
+    placeData = JSON.parse(martyr.place_of_martyrdom);
+  } catch (error) {
+    placeData = { state: martyr.place_of_martyrdom, area: '' };
+  }
+
+  return (
+    <div className="min-h-screen bg-white" dir="rtl">
+      <nav className="bg-white shadow-lg border-b-2 border-green-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-green-800">أرشيف الشهداء</h1>
+            </div>
+            <div className="flex items-center space-x-6 space-x-reverse">
+              <Link to="/" className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200">الرئيسية</Link>
+              <Link to="/martyrs" className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200">الشهداء</Link>
+              <Link to="/map" className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200">الخريطة</Link>
+              <Link to="/add-martyr" className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200">إضافة شهيد</Link>
+              <Link to="/admin/login" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium">المدير</Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+      
+      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-green-100 overflow-hidden">
+          {/* Hero Section with Image */}
+          {martyr.image_url && (
+            <div className="h-96 bg-gray-200 relative">
+              <img 
+                src={`http://localhost:5000${martyr.image_url}`} 
+                alt={martyr.name_ar}
+                className="w-full h-full object-contain"
+                style={{ background: 'black' }}
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-end">
+                <div className="p-8 text-white">
+                  <h1 className="text-4xl font-bold mb-2">{martyr.name_ar}</h1>
+                  <p className="text-xl opacity-90">{martyr.name_en}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Content Section */}
+          <div className="p-8">
+            {/* Header for non-image martyrs */}
+            {!martyr.image_url && (
+              <div className="mb-8 text-center">
+                <h1 className="text-4xl font-bold text-green-800 mb-2">{martyr.name_ar}</h1>
+                <p className="text-xl text-gray-600">{martyr.name_en}</p>
+              </div>
+            )}
+
+            {/* Basic Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div className="space-y-4">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-2">تاريخ الاستشهاد</h3>
+                  <p className="text-lg">{new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-2">مكان الاستشهاد</h3>
+                  <p className="text-lg">{placeData.state}{placeData.area ? ` - ${placeData.area}` : ''}</p>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-2">المهنة</h3>
+                  <p className="text-lg">{martyr.occupation}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-800 mb-2">المستوى التعليمي</h3>
+                  <p className="text-lg">{
+                    martyr.education_level === 'primary' ? 'ابتدائي' :
+                    martyr.education_level === 'secondary' ? 'ثانوي' :
+                    martyr.education_level === 'university' ? 'جامعي' :
+                    martyr.education_level === 'postgraduate' ? 'دراسات عليا' :
+                    martyr.education_level === 'other' ? 'أخرى' :
+                    martyr.education_level
+                  }</p>
+                </div>
+                
+                {martyr.university_name && (
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h3 className="font-semibold text-green-800 mb-2">الجامعة</h3>
+                    <p className="text-lg">{martyr.university_name}</p>
+                    {martyr.faculty && <p className="text-sm text-gray-600">الكلية: {martyr.faculty}</p>}
+                    {martyr.department && <p className="text-sm text-gray-600">القسم: {martyr.department}</p>}
+                  </div>
+                )}
+                
+                {(martyr.school_state || martyr.school_locality) && (
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h3 className="font-semibold text-green-800 mb-2">معلومات المدرسة</h3>
+                    {martyr.school_state && <p className="text-lg">الولاية: {martyr.school_state}</p>}
+                    {martyr.school_locality && <p className="text-sm text-gray-600">المحلية: {martyr.school_locality}</p>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Personal Information */}
+            {(martyr.spouse || martyr.children) && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-green-800 mb-4">المعلومات الشخصية</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {martyr.spouse && (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <h3 className="font-semibold text-gray-800 mb-2">الزوج/الزوجة</h3>
+                      <p className="text-lg">{martyr.spouse}</p>
+                    </div>
+                  )}
+                  {martyr.children && (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <h3 className="font-semibold text-gray-800 mb-2">عدد الأطفال</h3>
+                      <p className="text-lg">{martyr.children}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Biography */}
+            {martyr.bio && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-green-800 mb-4">السيرة الذاتية</h2>
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <p className="text-lg leading-relaxed text-gray-700">{martyr.bio}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Back Button */}
+            <div className="text-center pt-8 border-t border-gray-200">
+              <Link 
+                to="/martyrs" 
+                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+              >
+                العودة إلى قائمة الشهداء
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NotFoundPage = () => (
   <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
     <div className="text-center">
@@ -1325,6 +1545,7 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/martyrs" element={<MartyrsPage />} />
+                <Route path="/martyr/:id" element={<MartyrDetailPage />} />
                 <Route path="/map" element={<MapPage />} />
                 <Route path="/add-martyr" element={<AddMartyrPage />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
