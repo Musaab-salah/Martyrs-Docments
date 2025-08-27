@@ -185,7 +185,8 @@ const MartyrsPage = () => {
                     <p className="text-gray-600 mb-4 font-medium">{martyr.name_en}</p>
                     <div className="space-y-3 text-gray-700">
                       <p><span className="font-semibold text-green-700">التاريخ:</span> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
-                      <p><span className="font-semibold text-green-700">الموقع:</span> {placeData.state}{placeData.area ? ` - ${placeData.area}` : ''}</p>
+                      <p><span className="font-semibold text-green-700">الولاية:</span> {placeData.state}</p>
+                      {placeData.area && <p><span className="font-semibold text-green-700">المنطقة:</span> {placeData.area}</p>}
                       <p><span className="font-semibold text-green-700">المستوى التعليمي:</span> {
                         martyr.education_level === 'primary' ? 'ابتدائي' :
                         martyr.education_level === 'secondary' ? 'ثانوي' :
@@ -317,7 +318,8 @@ const MapPage = () => {
                       <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
                       <p className="text-sm text-gray-600">{martyr.name_en}</p>
                       <p className="text-sm"><strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
-                      <p className="text-sm"><strong>الموقع:</strong> {placeData.state}{placeData.area ? ` - ${placeData.area}` : ''}</p>
+                      <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
+                      {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
                       <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
                       {martyr.image_url && (
                         <img 
@@ -449,10 +451,9 @@ const AddMartyrPage = () => {
     const formDataToSend = new FormData();
     Object.keys(formData).forEach(key => {
       if (key === 'place_of_martyrdom') {
-        // Convert place_of_martyrdom object to a formatted string
+        // Send place_of_martyrdom as JSON string
         const place = formData[key];
-        const placeString = `${place.state} - ${place.area}`.trim();
-        formDataToSend.append(key, placeString);
+        formDataToSend.append(key, JSON.stringify(place));
       } else if (key === 'image' && formData[key]) {
         formDataToSend.append(key, formData[key]);
       } else if (key !== 'image') {
@@ -1175,7 +1176,10 @@ const AddMartyrPage = () => {
                           {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {placeData.state}{placeData.area ? ` - ${placeData.area}` : ''}
+                          <div>
+                            <div>{placeData.state}</div>
+                            {placeData.area && <div className="text-gray-500">{placeData.area}</div>}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(martyr.approval_status)}
@@ -1434,7 +1438,8 @@ const MartyrDetailPage = () => {
                 
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <h3 className="font-semibold text-green-800 mb-2">مكان الاستشهاد</h3>
-                  <p className="text-lg">{placeData.state}{placeData.area ? ` - ${placeData.area}` : ''}</p>
+                  <p className="text-lg">{placeData.state}</p>
+                  {placeData.area && <p className="text-sm text-gray-600">المنطقة: {placeData.area}</p>}
                 </div>
                 
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
