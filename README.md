@@ -10,6 +10,7 @@ A comprehensive digital archive platform for documenting and honoring martyrs wi
 - **Image Management**: Secure file upload and storage for martyr photos
 - **Responsive Design**: Mobile-first approach with modern UI/UX
 - **Admin Panel**: Secure administrative interface for content management
+- **Approval System**: Admin approval workflow for user-submitted martyrs
 - **Statistics Dashboard**: Analytics and insights about the archive
 - **Multi-language Support**: Arabic and English interface
 
@@ -253,6 +254,40 @@ CREATE TABLE martyrs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+```
+
+## ✅ Approval System
+
+The platform includes a comprehensive approval system to ensure content quality and accuracy:
+
+### How It Works
+
+1. **User Submissions**: When users add martyrs through the public form, they are saved with `approved = false`
+2. **Admin Review**: Admins can view all martyrs (approved and pending) in the admin dashboard
+3. **Approval Process**: Admins can approve or unapprove martyrs with a single click
+4. **Public Visibility**: Only approved martyrs (`approved = true`) are visible on the public client side
+
+### Admin Features
+
+- **View All Martyrs**: See both approved and pending submissions
+- **Filter by Status**: Filter to show only pending or approved martyrs
+- **Approve/Unapprove**: Toggle approval status with immediate effect
+- **Edit & Delete**: Full CRUD operations on all martyrs
+- **Bulk Operations**: Manage multiple martyrs efficiently
+
+### API Endpoints
+
+- `GET /api/martyrs` - Returns only approved martyrs (public)
+- `GET /api/martyrs/admin/all` - Returns all martyrs with approval status (admin)
+- `PATCH /api/martyrs/:id/approve` - Approve/unapprove a martyr (admin)
+- `POST /api/martyrs/public` - Add martyr (public, sets approved = false)
+- `POST /api/martyrs` - Add martyr (admin, sets approved = true)
+
+### Database Schema
+
+The `martyrs` table includes an `approved` boolean field:
+```sql
+ALTER TABLE martyrs ADD COLUMN approved BOOLEAN DEFAULT FALSE;
 ```
 
 ## 🚀 Deployment

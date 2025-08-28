@@ -220,8 +220,9 @@ const MartyrsPage = () => {
 const MapPage = () => {
   const [martyrs, setMartyrs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('clustering'); // 'clustering' or 'grouped'
 
-  // State coordinates mapping for map markers
+  // State coordinates mapping for map markers (fallback when lat/lng not available)
   const stateCoordinates = {
     'الخرطوم (Khartoum)': [15.5007, 32.5599],
     'الجزيرة (Gezira)': [14.4060, 33.5186],
@@ -260,16 +261,79 @@ const MapPage = () => {
     }
   };
 
+  // Group martyrs by location for grouped view
+  const groupMartyrsByLocation = () => {
+    const grouped = {};
+    
+    martyrs.forEach(martyr => {
+      let placeData;
+      try {
+        placeData = JSON.parse(martyr.place_of_martyrdom);
+      } catch (error) {
+        placeData = { state: martyr.place_of_martyrdom, area: '' };
+      }
+
+      // Use state coordinates for map display
+      let position = stateCoordinates[placeData.state];
+
+      if (!position) return;
+
+      const key = `${position[0]}-${position[1]}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          position,
+          martyrs: [],
+          placeData
+        };
+      }
+      grouped[key].martyrs.push(martyr);
+    });
+
+    return Object.values(grouped);
+  };
+
+  // Create custom marker icon with green theme
+  const createCustomIcon = (count = 1) => {
+    const size = count > 1 ? 30 : 25;
+    const color = count > 1 ? '#059669' : '#10b981'; // Darker green for multiple martyrs
+    
+    return L.divIcon({
+      html: `
+        <div style="
+          background-color: ${color};
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          font-size: ${count > 1 ? '12px' : '14px'};
+        ">
+          ${count > 1 ? count : '●'}
+        </div>
+      `,
+      className: 'custom-marker',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">جاري تحميل الخريطة...</p>
         </div>
       </div>
     );
   }
+
+  const groupedLocations = groupMartyrsByLocation();
 
   return (
     <div className="min-h-screen bg-white" dir="rtl">
@@ -292,8 +356,38 @@ const MapPage = () => {
       
       <div className="p-4">
         <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-6 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">خريطة الشهداء</h2>
           <p className="text-gray-600">انقر على العلامات لعرض تفاصيل الشهداء</p>
+            </div>
+            <div className="flex space-x-2 space-x-reverse">
+                             <button
+                 onClick={() => setViewMode('clustering')}
+                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                   viewMode === 'clustering'
+                     ? 'bg-green-600 text-white'
+                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                 }`}
+               >
+                 عرض جميع العلامات
+               </button>
+               <button
+                 onClick={() => setViewMode('grouped')}
+                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                   viewMode === 'grouped'
+                     ? 'bg-green-600 text-white'
+                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                 }`}
+               >
+                 تجميع حسب الموقع
+               </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-600">
+            <p>إجمالي الشهداء: <span className="font-semibold text-green-600">{martyrs.length}</span></p>
+            <p>عدد المواقع: <span className="font-semibold text-green-600">{groupedLocations.length}</span></p>
+          </div>
         </div>
         
         <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden" style={{ height: '600px' }}>
@@ -306,51 +400,114 @@ const MapPage = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            {martyrs.map((martyr) => {
-              // Handle place_of_martyrdom - it could be a string or JSON
-              let placeData;
-              try {
-                placeData = JSON.parse(martyr.place_of_martyrdom);
-              } catch (error) {
-                // If it's not valid JSON, treat it as a simple string
-                placeData = { state: martyr.place_of_martyrdom, area: '' };
-              }
-              const markerPosition = stateCoordinates[placeData.state];
-              
-              if (!markerPosition) return null;
-              
-              return (
-                <Marker key={martyr.id} position={markerPosition}>
+            
+                        {viewMode === 'clustering' ? (
+              // Option 1: Individual Markers - shows all individual markers
+              martyrs.map((martyr) => {
+                let placeData;
+                try {
+                  placeData = JSON.parse(martyr.place_of_martyrdom);
+                } catch (error) {
+                  placeData = { state: martyr.place_of_martyrdom, area: '' };
+                }
+
+                // Use state coordinates for map display
+                let position = stateCoordinates[placeData.state];
+                
+                if (!position) return null;
+                
+                return (
+                  <Marker 
+                    key={martyr.id} 
+                    position={position}
+                    icon={createCustomIcon(1)}
+                  >
+                    <Popup>
+                      <div className="text-right" dir="rtl">
+                        <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
+                        <p className="text-sm text-gray-600">{martyr.name_en}</p>
+                        <p className="text-sm"><strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
+                        <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
+                        {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
+                        <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
+                        <ImageWithFallback 
+                          src={martyr.image_url ? `http://localhost:5000${martyr.image_url}` : "/default.png"}
+                          alt={martyr.name_ar}
+                          className="w-20 h-20 object-cover rounded mt-2"
+                          fallbackSrc="/default.png"
+                        />
+                        {martyr.bio && (
+                          <p className="text-sm mt-2">{martyr.bio.substring(0, 100)}...</p>
+                        )}
+                        <div className="mt-3">
+                          <Link 
+                            to={`/martyr/${martyr.id}`}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                          >
+                            عرض التفاصيل
+                          </Link>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })
+            ) : (
+              // Option 2: Grouped Markers - one marker per location with all martyrs in popup
+              groupedLocations.map((location, index) => (
+                <Marker 
+                  key={index} 
+                  position={location.position}
+                  icon={createCustomIcon(location.martyrs.length)}
+                >
                   <Popup>
-                    <div className="text-right" dir="rtl">
-                      <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
-                      <p className="text-sm text-gray-600">{martyr.name_en}</p>
-                      <p className="text-sm"><strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
-                      <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
-                      {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
-                      <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
-                      <ImageWithFallback 
-                        src={martyr.image_url ? `http://localhost:5000${martyr.image_url}` : "/default.png"}
-                        alt={martyr.name_ar}
-                        className="w-20 h-20 object-cover rounded mt-2"
-                        fallbackSrc="/default.png"
-                      />
-                      {martyr.bio && (
-                        <p className="text-sm mt-2">{martyr.bio.substring(0, 100)}...</p>
-                      )}
-                      <div className="mt-3">
-                        <Link 
-                          to={`/martyr/${martyr.id}`}
-                          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-                        >
-                          عرض التفاصيل
-                        </Link>
+                    <div className="text-right" dir="rtl" style={{ maxWidth: '300px' }}>
+                      <h3 className="font-bold text-lg mb-2">
+                        {location.martyrs.length > 1 
+                          ? `${location.martyrs.length} شهيد في ${location.placeData.state}`
+                          : location.martyrs[0].name_ar
+                        }
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        <strong>الولاية:</strong> {location.placeData.state}
+                        {location.placeData.area && <><br /><strong>المنطقة:</strong> {location.placeData.area}</>}
+                      </p>
+                      
+                      <div className="max-h-60 overflow-y-auto">
+                        {location.martyrs.map((martyr, martyrIndex) => (
+                          <div key={martyr.id} className={`border-b border-gray-200 ${martyrIndex > 0 ? 'pt-3' : ''}`}>
+                            <div className="flex items-start space-x-3 space-x-reverse">
+                              <ImageWithFallback 
+                                src={martyr.image_url ? `http://localhost:5000${martyr.image_url}` : "/default.png"}
+                                alt={martyr.name_ar}
+                                className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                fallbackSrc="/default.png"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm">{martyr.name_ar}</h4>
+                                <p className="text-xs text-gray-600">{martyr.name_en}</p>
+                                <p className="text-xs text-gray-700">
+                                  <strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}
+                                </p>
+                                <p className="text-xs text-gray-700">
+                                  <strong>المهنة:</strong> {martyr.occupation}
+                                </p>
+                                <Link 
+                                  to={`/martyr/${martyr.id}`}
+                                  className="inline-block mt-1 bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors"
+                                >
+                                  عرض التفاصيل
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </Popup>
                 </Marker>
-              );
-            })}
+              ))
+            )}
           </MapContainer>
         </div>
       </div>
@@ -477,7 +634,7 @@ const AddMartyrPage = () => {
       });
 
       if (response.ok) {
-        alert('تم إضافة الشهيد بنجاح');
+        alert('تم إضافة الشهيد بنجاح. سيتم مراجعته من قبل المدير قبل النشر.');
         setFormData({
           name_ar: '',
           name_en: '',
@@ -495,6 +652,7 @@ const AddMartyrPage = () => {
           bio: '',
           image: null
         });
+        setMarkerPosition(null);
       } else {
         alert('حدث خطأ أثناء إضافة الشهيد');
       }
@@ -625,6 +783,8 @@ const AddMartyrPage = () => {
               </div>
             </div>
 
+
+
             {/* Map Preview */}
             {formData.place_of_martyrdom.state && (
               <div>
@@ -649,6 +809,7 @@ const AddMartyrPage = () => {
                             {formData.place_of_martyrdom.area && (
                               <span>{formData.place_of_martyrdom.area}</span>
                             )}
+
                           </div>
                         </Popup>
                       </Marker>
@@ -922,9 +1083,7 @@ const AddMartyrPage = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [showRejectModal, setShowRejectModal] = useState(false);
-    const [selectedMartyr, setSelectedMartyr] = useState(null);
-    const [rejectReason, setRejectReason] = useState('');
+
 
     const adminToken = localStorage.getItem('adminToken');
 
@@ -935,7 +1094,7 @@ const AddMartyrPage = () => {
           page: currentPage,
           limit: 20,
           ...(searchTerm && { search: searchTerm }),
-          ...(statusFilter && { status: statusFilter })
+          ...(statusFilter && { approval_status: statusFilter })
         });
 
         const response = await fetch(`http://localhost:5000/api/martyrs/admin/all?${params}`, {
@@ -973,7 +1132,7 @@ const AddMartyrPage = () => {
       fetchMartyrs();
     }, [adminToken, fetchMartyrs]);
 
-    const handleApprove = async (id) => {
+    const handleApprove = async (id, approved) => {
       try {
         const response = await fetch(`http://localhost:5000/api/martyrs/${id}/approve`, {
           method: 'PATCH',
@@ -981,7 +1140,7 @@ const AddMartyrPage = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${adminToken}`
           },
-          body: JSON.stringify({ admin_notes: 'Approved by admin' })
+          body: JSON.stringify({ approved })
         });
 
         if (response.ok) {
@@ -995,35 +1154,7 @@ const AddMartyrPage = () => {
       }
     };
 
-    const handleReject = async () => {
-      if (!rejectReason.trim()) {
-        setError('Rejection reason is required');
-        return;
-      }
 
-      try {
-        const response = await fetch(`http://localhost:5000/api/martyrs/${selectedMartyr.id}/reject`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          },
-          body: JSON.stringify({ admin_notes: rejectReason })
-        });
-
-        if (response.ok) {
-          setShowRejectModal(false);
-          setSelectedMartyr(null);
-          setRejectReason('');
-          fetchMartyrs();
-        } else {
-          const data = await response.json();
-          setError(data.error || 'Failed to reject martyr');
-        }
-      } catch (error) {
-        setError('Network error');
-      }
-    };
 
     const handleDelete = async (id) => {
       if (!window.confirm('هل أنت متأكد من حذف هذا الشهيد؟')) {
@@ -1049,19 +1180,20 @@ const AddMartyrPage = () => {
       }
     };
 
-    const getStatusBadge = (status) => {
-      const statusConfig = {
-        pending: { text: 'في الانتظار', color: 'bg-yellow-100 text-yellow-800' },
-        approved: { text: 'مُوافق عليه', color: 'bg-green-100 text-green-800' },
-        rejected: { text: 'مرفوض', color: 'bg-red-100 text-red-800' }
-      };
-      
-      const config = statusConfig[status] || statusConfig.pending;
-      return (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-          {config.text}
-        </span>
-      );
+    const getStatusBadge = (approved) => {
+      if (approved) {
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+            مُوافق عليه
+          </span>
+        );
+      } else {
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+            في الانتظار
+          </span>
+        );
+      }
     };
 
     const logout = () => {
@@ -1124,7 +1256,6 @@ const AddMartyrPage = () => {
                   <option value="">جميع الحالات</option>
                   <option value="pending">في الانتظار</option>
                   <option value="approved">مُوافق عليه</option>
-                  <option value="rejected">مرفوض</option>
                 </select>
               </div>
               <div className="flex items-end">
@@ -1189,28 +1320,24 @@ const AddMartyrPage = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(martyr.approval_status)}
+                          {getStatusBadge(martyr.approved)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2 space-x-reverse">
-                            {martyr.approval_status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(martyr.id)}
-                                  className="text-green-600 hover:text-green-900"
-                                >
-                                  موافقة
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedMartyr(martyr);
-                                    setShowRejectModal(true);
-                                  }}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  رفض
-                                </button>
-                              </>
+                            {!martyr.approved ? (
+                              <button
+                                onClick={() => handleApprove(martyr.id, true)}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                موافقة
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleApprove(martyr.id, false)}
+                                className="text-yellow-600 hover:text-yellow-900"
+                              >
+                                إلغاء الموافقة
+                              </button>
                             )}
                             <button
                               onClick={() => window.location.href = `/admin/edit-martyr/${martyr.id}`}
@@ -1283,40 +1410,7 @@ const AddMartyrPage = () => {
         </div>
 
         {/* Reject Modal */}
-        {showRejectModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">سبب الرفض</h3>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="اكتب سبب الرفض..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  rows="4"
-                />
-                <div className="flex justify-end space-x-3 space-x-reverse mt-4">
-                  <button
-                    onClick={() => {
-                      setShowRejectModal(false);
-                      setSelectedMartyr(null);
-                      setRejectReason('');
-                    }}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={handleReject}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    رفض
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     );
   };

@@ -22,8 +22,7 @@ CREATE TABLE martyrs (
   name_en VARCHAR(255) NOT NULL COMMENT 'Name in English',
   date_of_martyrdom DATE NOT NULL,
   place_of_martyrdom JSON NOT NULL COMMENT '{"state": "الخرطوم", "location": "الخرطوم بحري"}',
-  latitude DECIMAL(10, 8) NOT NULL,
-  longitude DECIMAL(11, 8) NOT NULL,
+
   education_level ENUM('خريج', 'جامعي', 'مدرسة') NOT NULL,
   university_name VARCHAR(255) NULL,
   faculty VARCHAR(255) NULL,
@@ -35,12 +34,14 @@ CREATE TABLE martyrs (
   occupation VARCHAR(255) NOT NULL,
   bio TEXT NULL,
   image_url VARCHAR(500) NULL,
+  approved BOOLEAN DEFAULT FALSE COMMENT 'Whether the martyr has been approved by admin',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_name_ar (name_ar),
   INDEX idx_date (date_of_martyrdom),
   INDEX idx_location (place_of_martyrdom),
-  INDEX idx_education (education_level)
+  INDEX idx_education (education_level),
+  INDEX idx_approved (approved)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create admins table
@@ -109,33 +110,33 @@ VALUES (
 -- Insert sample martyrs for Sudan
 INSERT INTO martyrs (
   name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
-  latitude, longitude, education_level, university_name, faculty, department,
-  occupation, bio, image_url
+  education_level, university_name, faculty, department,
+  occupation, bio, image_url, approved
 ) VALUES
 ('محمد أحمد علي', 'Mohamed Ahmed Ali', '2024-01-15', 
  '{"state": "الخرطوم", "location": "الخرطوم بحري"}', 
- 15.6100, 32.5300, 'جامعي', 'جامعة الخرطوم', 'الهندسة', 'مدني',
- 'مهندس مدني', 'كان مثالاً للشجاعة والتفاني في خدمة الوطن. عمل على مشاريع البنية التحتية المهمة.', NULL),
+ 'جامعي', 'جامعة الخرطوم', 'الهندسة', 'مدني',
+ 'مهندس مدني', 'كان مثالاً للشجاعة والتفاني في خدمة الوطن. عمل على مشاريع البنية التحتية المهمة.', NULL, TRUE),
 
 ('فاطمة محمد حسن', 'Fatima Mohamed Hassan', '2024-02-20', 
  '{"state": "الخرطوم", "location": "أم درمان"}', 
- 15.6500, 32.4800, 'خريج', 'جامعة السودان', 'الطب', 'طب عام',
- 'طبيبة', 'كرست حياتها لعلاج المرضى ومساعدة المحتاجين. كانت مثالاً للرحمة والإنسانية.', NULL),
+ 'خريج', 'جامعة السودان', 'الطب', 'طب عام',
+ 'طبيبة', 'كرست حياتها لعلاج المرضى ومساعدة المحتاجين. كانت مثالاً للرحمة والإنسانية.', NULL, TRUE),
 
 ('أحمد عمر محمد', 'Ahmed Omar Mohamed', '2024-03-10', 
  '{"state": "الخرطوم", "location": "الخرطوم"}', 
- 15.5007, 32.5599, 'مدرسة', NULL, NULL, NULL,
- 'طالب', 'كان طالباً مجتهداً يحلم بمستقبل أفضل لبلاده. كان مثالاً للشباب الواعي.', NULL),
+ 'مدرسة', NULL, NULL, NULL,
+ 'طالب', 'كان طالباً مجتهداً يحلم بمستقبل أفضل لبلاده. كان مثالاً للشباب الواعي.', NULL, TRUE),
 
 ('سارة عبد الرحمن', 'Sara Abdel Rahman', '2024-04-05', 
  '{"state": "الخرطوم", "location": "الخرطوم شمال"}', 
- 15.5500, 32.5800, 'جامعي', 'جامعة النيلين', 'العلوم', 'كيمياء',
- 'باحثة', 'عملت في مجال البحث العلمي وساهمت في تطوير العلوم في السودان.', NULL),
+ 'جامعي', 'جامعة النيلين', 'العلوم', 'كيمياء',
+ 'باحثة', 'عملت في مجال البحث العلمي وساهمت في تطوير العلوم في السودان.', NULL, TRUE),
 
 ('علي حسن محمد', 'Ali Hassan Mohamed', '2024-05-12', 
  '{"state": "الخرطوم", "location": "الخرطوم شرق"}', 
- 15.5200, 32.5400, 'خريج', 'جامعة الخرطوم', 'الاقتصاد', 'إدارة أعمال',
- 'محاسب', 'كان محاسباً أميناً ساهم في تطوير القطاع المالي في السودان.', NULL);
+ 'خريج', 'جامعة الخرطوم', 'الاقتصاد', 'إدارة أعمال',
+ 'محاسب', 'كان محاسباً أميناً ساهم في تطوير القطاع المالي في السودان.', NULL, TRUE);
 
 -- Insert sample tributes
 INSERT INTO tributes (martyr_id, visitor_name, message, is_approved, ip_address) VALUES

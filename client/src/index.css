@@ -166,6 +166,32 @@
   font-size: 14px;
 }
 
+/* Custom marker styles */
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Ensure custom markers are above other elements */
+.leaflet-marker-icon.custom-marker {
+  z-index: 1000;
+}
+
+/* Custom popup styles for grouped martyrs */
+.leaflet-popup-content .martyrs-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.leaflet-popup-content .martyr-item {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 0;
+}
+
+.leaflet-popup-content .martyr-item:last-child {
+  border-bottom: none;
+}
+
 /* React Query devtools */
 .react-query-devtools {
   position: fixed;

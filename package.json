@@ -11,7 +11,8 @@
     "install-all": "npm install && cd client && npm install",
     "start": "node server/index.js",
     "setup": "node setup.js",
-    "db:init": "node setup.js"
+    "db:init": "node setup.js",
+    "migrate": "node run-migration.js"
   },
   "keywords": [
     "martyrs",

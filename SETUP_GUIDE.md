@@ -80,6 +80,7 @@ GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 - ✅ Secure login system
 - ✅ Add/Edit/Delete martyrs
 - ✅ Photo upload and management
+- ✅ Martyr approval system
 - ✅ Tribute approval system
 - ✅ Statistics dashboard
 - ✅ System settings
@@ -93,6 +94,7 @@ npm run server       # Start backend only
 npm run client       # Start frontend only
 npm run build        # Build for production
 npm run setup        # Setup database and admin account
+npm run migrate      # Run database migration (for existing installations)
 ```
 
 ### Project Structure
@@ -103,6 +105,30 @@ martyrs-archive/
 ├── uploads/         # File uploads
 ├── database/        # Database scripts
 └── setup.js         # Setup script
+```
+
+## ✅ Approval System
+
+The platform includes a comprehensive approval system for user-submitted martyrs:
+
+### How It Works
+1. **User Submissions**: Public users can submit martyrs through `/add-martyr`
+2. **Pending Status**: New submissions are saved with `approved = false`
+3. **Admin Review**: Admins can view and manage all submissions in the admin panel
+4. **Approval Process**: Admins can approve/unapprove martyrs with one click
+5. **Public Visibility**: Only approved martyrs appear on the public site
+
+### Admin Workflow
+1. Login to admin panel at `/admin/login`
+2. Navigate to dashboard to see all martyrs
+3. Filter by "في الانتظار" (pending) to see new submissions
+4. Click "موافقة" (approve) to make a martyr public
+5. Use "إلغاء الموافقة" (unapprove) to hide from public view
+
+### Migration for Existing Installations
+If you have an existing database, run the migration to add the approval system:
+```bash
+npm run migrate
 ```
 
 ## 🔒 Security Features

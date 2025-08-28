@@ -59,7 +59,10 @@ router.get('/', catchAsync(async (req, res) => {
   const whereConditions = [];
   const params = [];
 
-    if (search) {
+  // Only show approved martyrs for public endpoint
+  whereConditions.push('approved = TRUE');
+
+  if (search) {
     whereConditions.push('(name_ar LIKE ? OR name_en LIKE ? OR occupation LIKE ?)');
     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
@@ -120,10 +123,11 @@ router.get('/', catchAsync(async (req, res) => {
 
 // GET /api/martyrs/stats/summary - Get summary statistics
 router.get('/stats/summary', catchAsync(async (req, res) => {
-  const [totalResult] = await pool.execute('SELECT COUNT(*) as total FROM martyrs');
+  const [totalResult] = await pool.execute('SELECT COUNT(*) as total FROM martyrs WHERE approved = TRUE');
   const [educationResult] = await pool.execute(`
     SELECT education_level, COUNT(*) as count 
     FROM martyrs 
+    WHERE approved = TRUE
     GROUP BY education_level
   `);
   const [monthlyResult] = await pool.execute(`
@@ -131,7 +135,7 @@ router.get('/stats/summary', catchAsync(async (req, res) => {
       DATE_FORMAT(date_of_martyrdom, '%Y-%m') as month,
       COUNT(*) as count
     FROM martyrs 
-    WHERE date_of_martyrdom >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    WHERE approved = TRUE AND date_of_martyrdom >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
     GROUP BY DATE_FORMAT(date_of_martyrdom, '%Y-%m')
     ORDER BY month DESC
   `);
@@ -153,7 +157,7 @@ router.get('/:id', catchAsync(async (req, res) => {
            school_state, school_locality, spouse, children, occupation, bio, image_url, 
            created_at
     FROM martyrs 
-    WHERE id = ?
+    WHERE id = ? AND approved = TRUE
   `;
   
   const [martyrs] = await pool.execute(query, [id]);
@@ -164,6 +168,8 @@ router.get('/:id', catchAsync(async (req, res) => {
 
   res.json({ martyr: martyrs[0] });
 }));
+
+
 
 // POST /api/martyrs/public - Add a new martyr (public endpoint)
 router.post('/public', 
@@ -186,7 +192,9 @@ router.post('/public',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      longitude,
+      latitude
     } = req.body;
     
     // Handle image upload
@@ -205,8 +213,9 @@ router.post('/public',
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
-        school_state, school_locality, spouse, children, occupation, bio, image_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        school_state, school_locality, spouse, children, occupation, bio, image_url, 
+        longitude, latitude, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -214,17 +223,19 @@ router.post('/public',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level,
+      education_level, // Use education_level directly, don't convert
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      children || null, // Keep as string/text
       occupation,
       bio || null,
-      image_url
+      image_url,
+      longitude || 0.00000000,
+      latitude || 0.00000000
     ]);
     
     // Get the inserted martyr
@@ -260,7 +271,9 @@ router.post('/',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      longitude,
+      latitude
     } = req.body;
 
     // Handle image upload
@@ -279,8 +292,9 @@ router.post('/',
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
-        school_state, school_locality, spouse, children, occupation, bio, image_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        school_state, school_locality, spouse, children, occupation, bio, image_url, 
+        longitude, latitude, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -288,17 +302,19 @@ router.post('/',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level,
+      education_level, // Use education_level directly, don't convert
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      children || null, // Keep as string/text
       occupation,
       bio || null,
-      image_url
+      image_url,
+      longitude || 0.00000000,
+      latitude || 0.00000000
     ]);
     
     // Get the inserted martyr
@@ -342,7 +358,9 @@ router.put('/:id',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      longitude,
+      latitude
     } = req.body;
     
     // Handle image upload
@@ -369,7 +387,7 @@ router.put('/:id',
         name_ar = ?, name_en = ?, date_of_martyrdom = ?, place_of_martyrdom = ?,
         education_level = ?, university_name = ?, faculty = ?, department = ?,
         school_state = ?, school_locality = ?, spouse = ?, children = ?, 
-        occupation = ?, bio = ?, image_url = ?
+        occupation = ?, bio = ?, image_url = ?, longitude = ?, latitude = ?
       WHERE id = ?
     `;
     
@@ -378,17 +396,19 @@ router.put('/:id',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level,
+      education_level, // Use education_level directly, don't convert
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      children || null, // Keep as string/text
       occupation,
       bio || null,
       image_url,
+      longitude || 0.00000000,
+      latitude || 0.00000000,
       id
     ]);
     
@@ -436,6 +456,7 @@ router.get('/admin/all', catchAsync(async (req, res) => {
   const educationLevel = req.query.education_level || '';
   const dateFrom = req.query.date_from || '';
   const dateTo = req.query.date_to || '';
+  const approvalStatus = req.query.approval_status || '';
   
   const offset = (page - 1) * limit;
 
@@ -463,6 +484,14 @@ router.get('/admin/all', catchAsync(async (req, res) => {
     params.push(dateTo);
   }
 
+  if (approvalStatus) {
+    if (approvalStatus === 'pending') {
+      whereConditions.push('approved = FALSE');
+    } else if (approvalStatus === 'approved') {
+      whereConditions.push('approved = TRUE');
+    }
+  }
+
   const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
   // Get total count
@@ -475,7 +504,7 @@ router.get('/admin/all', catchAsync(async (req, res) => {
     SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
            education_level, university_name, faculty, department,
            school_state, school_locality, spouse, children, occupation, bio, image_url, 
-           created_at, updated_at
+           approved, created_at, updated_at
     FROM martyrs  
     ${whereClause}
     ORDER BY created_at DESC, name_ar ASC 
@@ -499,6 +528,32 @@ router.get('/admin/all', catchAsync(async (req, res) => {
       hasNextPage,
       hasPrevPage
     }
+  });
+}));
+
+// PATCH /api/martyrs/:id/approve - Approve a martyr
+router.patch('/:id/approve', catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { approved } = req.body;
+  
+  // Check if martyr exists
+  const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Martyr not found' });
+  }
+  
+  // Update approval status
+  await pool.execute('UPDATE martyrs SET approved = ? WHERE id = ?', [approved, id]);
+  
+  // Get the updated martyr
+  const [updatedMartyr] = await pool.execute(
+    'SELECT * FROM martyrs WHERE id = ?',
+    [id]
+  );
+
+  res.json({ 
+    message: approved ? 'Martyr approved successfully' : 'Martyr unapproved successfully',
+    martyr: updatedMartyr[0]
   });
 }));
 

@@ -108,14 +108,12 @@ router.get('/detailed', [authenticateToken, requireAdmin], async (req, res) => {
       ORDER BY month DESC
     `);
 
-    // Top locations with coordinates
+    // Top locations
     const [topLocations] = await pool.execute(`
       SELECT 
         place_of_martyrdom,
-        COUNT(*) as count,
-        coordinates
+        COUNT(*) as count
       FROM martyrs 
-      WHERE coordinates IS NOT NULL
       GROUP BY place_of_martyrdom
       ORDER BY count DESC
       LIMIT 20
@@ -191,22 +189,14 @@ router.get('/map', async (req, res) => {
       SELECT 
         place_of_martyrdom,
         COUNT(*) as count,
-        coordinates,
         MIN(date_of_martyrdom) as earliest_date,
         MAX(date_of_martyrdom) as latest_date
       FROM martyrs 
-      WHERE coordinates IS NOT NULL
       GROUP BY place_of_martyrdom
       ORDER BY count DESC
     `);
 
-    // Process coordinates for map
-    const processedData = mapData.map(item => ({
-      ...item,
-      coordinates: item.coordinates ? JSON.parse(item.coordinates) : null
-    }));
-
-    res.json(processedData);
+    res.json(mapData);
   } catch (error) {
     console.error('Map data error:', error);
     res.status(500).json({ error: 'Failed to fetch map data' });
@@ -227,8 +217,6 @@ router.get('/export', [authenticateToken, requireAdmin], async (req, res) => {
           image_url,
           place_of_martyrdom,
           date_of_martyrdom,
-          latitude,
-          longitude,
           education_level,
           occupation,
           bio,

@@ -14,9 +14,8 @@ const martyrValidation = [
     .isISO8601()
     .withMessage('Invalid date format'),
   body('place_of_martyrdom')
-    .trim()
-    .isLength({ min: 2, max: 500 })
-    .withMessage('Place of martyrdom must be between 2 and 500 characters'),
+    .notEmpty()
+    .withMessage('Place of martyrdom is required'),
   body('education_level')
     .isIn(['primary', 'secondary', 'university', 'postgraduate', 'other'])
     .withMessage('Invalid education level'),
@@ -63,7 +62,15 @@ const martyrValidation = [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Children information must not exceed 500 characters')
+    .withMessage('Children information must not exceed 500 characters'),
+  body('longitude')
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Longitude must be a valid number between -180 and 180'),
+  body('latitude')
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Latitude must be a valid number between -90 and 90')
 ];
 
 // Handle validation errors

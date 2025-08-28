@@ -130,6 +130,21 @@ export const martyrsApi = {
     const api = new ApiService();
     return api.delete(`/martyrs/${id}`);
   },
+
+  // Get all martyrs for admin (including unapproved)
+  getAllForAdmin: (params = {}) => {
+    const api = new ApiService();
+    return api.get('/martyrs/admin/all', params);
+  },
+
+  // Approve/unapprove a martyr
+  approve: (id, approved) => {
+    const api = new ApiService();
+    return api.request(`/martyrs/${id}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ approved })
+    });
+  },
 };
 
 // Health check
