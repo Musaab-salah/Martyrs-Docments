@@ -428,5 +428,79 @@ router.delete('/:id', catchAsync(async (req, res) => {
     res.json({ message: 'Martyr deleted successfully' });
 }));
 
+// GET /api/martyrs/admin/all - Get all martyrs for admin (with additional fields)
+router.get('/admin/all', catchAsync(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const search = req.query.search || '';
+  const educationLevel = req.query.education_level || '';
+  const dateFrom = req.query.date_from || '';
+  const dateTo = req.query.date_to || '';
+  
+  const offset = (page - 1) * limit;
+
+  // Build WHERE conditions
+  const whereConditions = [];
+  const params = [];
+
+  if (search) {
+    whereConditions.push('(name_ar LIKE ? OR name_en LIKE ? OR occupation LIKE ?)');
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  
+  if (educationLevel) {
+    whereConditions.push('education_level = ?');
+    params.push(educationLevel);
+  }
+  
+  if (dateFrom) {
+    whereConditions.push('date_of_martyrdom >= ?');
+    params.push(dateFrom);
+  }
+  
+  if (dateTo) {
+    whereConditions.push('date_of_martyrdom <= ?');
+    params.push(dateTo);
+  }
+
+  const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+
+  // Get total count
+  const countQuery = `SELECT COUNT(*) as total FROM martyrs ${whereClause}`;
+  const [countResult] = await pool.execute(countQuery, params);
+  const total = countResult[0].total;
+
+  // Get martyrs with pagination (admin view includes all fields)
+  const query = `
+    SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+           education_level, university_name, faculty, department,
+           school_state, school_locality, spouse, children, occupation, bio, image_url, 
+           created_at, updated_at
+    FROM martyrs  
+    ${whereClause}
+    ORDER BY created_at DESC, name_ar ASC 
+    LIMIT ? OFFSET ?
+  `;
+  
+  const [martyrs] = await pool.execute(query, [...params, limit, offset]);
+  
+  // Calculate pagination info
+  const totalPages = Math.ceil(total / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
+  res.json({
+    martyrs,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalItems: total,
+      itemsPerPage: limit,
+      hasNextPage,
+      hasPrevPage
+    }
+  });
+}));
+
 module.exports = router;
 

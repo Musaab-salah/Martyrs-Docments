@@ -12,9 +12,13 @@ const { handleError } = require('./utils/errorHandler');
 
 // Import routes
 const martyrsRoutes = require('./routes/martyrs');
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const statsRoutes = require('./routes/stats');
+const tributesRoutes = require('./routes/tributes');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Security middleware
@@ -116,6 +120,10 @@ app.get('/api/martyrs/test', (req, res) => {
 
 // API routes
 app.use('/api/martyrs', martyrsRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/tributes', tributesRoutes);
 
 // 404 handler
 app.use('/api/*', (req, res) => {
