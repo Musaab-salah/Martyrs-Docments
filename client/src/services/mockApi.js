@@ -109,7 +109,8 @@ class MockApiService {
       case '/api/auth/login':
         if (method === 'POST') {
           const credentials = JSON.parse(options.body);
-          if (credentials.username === 'sudansust' && credentials.password === 'sust@1989') {
+          // For mock API, accept any non-empty username and password
+          if (credentials.username && credentials.username.trim() && credentials.password && credentials.password.trim()) {
             return {
               token: 'mock-jwt-token-12345',
               message: 'Login successful'

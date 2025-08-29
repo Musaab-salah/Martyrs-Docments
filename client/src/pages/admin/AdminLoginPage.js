@@ -52,13 +52,13 @@ const AdminLoginPage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6 mt-8">
               <div className="form-group">
-                <label className="form-label">اسم المستخدم</label>
+                <label className="form-label">اسم المستخدم أو البريد الإلكتروني</label>
                 <input
                   type="text"
                   value={credentials.username}
                   onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                   className="form-input"
-                  placeholder="أدخل اسم المستخدم"
+                  placeholder="أدخل اسم المستخدم أو البريد الإلكتروني"
                   required
                 />
               </div>
@@ -89,15 +89,22 @@ const AdminLoginPage = () => {
                   'تسجيل الدخول'
                 )}
               </button>
+
+              <div className="text-center">
+                <button 
+                  type="button"
+                  className="text-sm text-primary-600 hover:text-primary-700 transition-colors bg-transparent border-none cursor-pointer"
+                  onClick={() => {
+                    // TODO: Implement forgot password functionality
+                    alert('سيتم إضافة ميزة استعادة كلمة المرور قريباً');
+                  }}
+                >
+                  نسيت كلمة المرور؟
+                </button>
+              </div>
             </form>
 
-            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">بيانات الدخول الافتراضية:</h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><span className="font-medium">اسم المستخدم:</span> sudansust</p>
-                <p><span className="font-medium">كلمة المرور:</span> sust@1989</p>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>
