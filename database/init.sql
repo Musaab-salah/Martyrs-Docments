@@ -97,9 +97,9 @@ CREATE TABLE statistics (
 -- Insert default super admin account
 INSERT INTO admins (username, email, password_hash, role, is_active) 
 VALUES (
-    'admin',
+    'sudansust',
     'admin@martyrsarchive.com',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.G', -- admin123
+    '$2a$12$H.NvjNDmZCGq9N9AhxIE4OSkx5sp1VqeMYe.klM/TuAEAywK6eKe6', -- sust@1989
     'super_admin',
     TRUE
 ) ON DUPLICATE KEY UPDATE 

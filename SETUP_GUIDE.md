@@ -41,8 +41,8 @@ npm run dev
 - **Frontend**: http://localhost:3000
 - **Admin Panel**: http://localhost:3000/admin/login
 - **Default Admin**: 
-  - Username: `admin`
-  - Password: `admin123`
+  - Username: `sustheteen`
+  - Password: `Sudan@1989`
 
 ## 🔧 Configuration Options
 

@@ -1066,8 +1066,8 @@ const AddMartyrPage = () => {
 
             <div className="mt-6 text-center text-sm text-gray-600">
               <p>بيانات الدخول الافتراضية:</p>
-              <p>اسم المستخدم: admin</p>
-              <p>كلمة المرور: admin123</p>
+              <p>اسم المستخدم: sudansust</p>
+              <p>كلمة المرور: sust@1989</p>
             </div>
           </div>
         </div>
