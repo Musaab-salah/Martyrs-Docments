@@ -12,7 +12,7 @@ const { catchAsync, handleDatabaseError, handleFileError } = require('../utils/e
 // GET /api/martyrs - Get all martyrs with pagination and search
 router.get('/', catchAsync(async (req, res) => {
   // Simple mock response for testing without database
-  if (process.env.NODE_ENV === 'development' && req.query.mock === 'true') {
+  if (process.env.NODE_ENV === 'development' && (req.query.mock === 'true' || !pool)) {
     return res.json({
       martyrs: [
         {

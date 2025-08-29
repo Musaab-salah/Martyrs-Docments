@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: martyrs-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: UPLOAD_PATH
+        value: ./uploads
+      - key: MAX_FILE_SIZE
+        value: 10485760
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: ALLOWED_ORIGINS
+        value: https://martyrs-gk348rnps-musaabsalaheldin-9472s-projects.vercel.app,https://martyrs-c1x43y1fs-musaabsalaheldin-9472s-projects.vercel.app
+
+databases:
+  - name: martyrs-db
+    databaseName: martyrs_archive
+    user: martyrs_user

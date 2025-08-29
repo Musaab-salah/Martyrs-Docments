@@ -4,6 +4,12 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import ImageWithFallback from './components/ImageWithFallback';
+import { martyrsApi, authApi, adminApi } from './services/api';
+
+// Helper function to get API base URL
+const getApiBaseUrl = () => {
+  return process.env.REACT_APP_API_URL || 'http://localhost:5000';
+};
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -89,11 +95,7 @@ const MartyrsPage = () => {
 
   const fetchMartyrs = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/martyrs');
-      if (!response.ok) {
-        throw new Error('Failed to fetch martyrs');
-      }
-      const data = await response.json();
+      const data = await martyrsApi.getAll();
       setMartyrs(data.martyrs);
     } catch (err) {
       setError(err.message);
@@ -173,7 +175,7 @@ const MartyrsPage = () => {
                   <div className="h-56 bg-gray-200">
                     {martyr.image_url ? (
                       <ImageWithFallback 
-                        src={`http://localhost:5000${martyr.image_url}`} 
+                        src={martyr.image_url ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${martyr.image_url}` : "/default.png"} 
                         alt={martyr.name_ar}
                         className="w-full h-full object-cover"
                         fallbackSrc="/default.png"
@@ -249,11 +251,8 @@ const MapPage = () => {
 
   const fetchMartyrs = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/martyrs');
-      if (response.ok) {
-        const data = await response.json();
-        setMartyrs(data.martyrs);
-      }
+      const data = await martyrsApi.getAll();
+      setMartyrs(data.martyrs);
     } catch (err) {
       console.error('Error fetching martyrs:', err);
     } finally {
@@ -431,7 +430,7 @@ const MapPage = () => {
                         {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
                         <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
                         <ImageWithFallback 
-                          src={martyr.image_url ? `http://localhost:5000${martyr.image_url}` : "/default.png"}
+                          src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
                           alt={martyr.name_ar}
                           className="w-20 h-20 object-cover rounded mt-2"
                           fallbackSrc="/default.png"
@@ -478,7 +477,7 @@ const MapPage = () => {
                           <div key={martyr.id} className={`border-b border-gray-200 ${martyrIndex > 0 ? 'pt-3' : ''}`}>
                             <div className="flex items-start space-x-3 space-x-reverse">
                               <ImageWithFallback 
-                                src={martyr.image_url ? `http://localhost:5000${martyr.image_url}` : "/default.png"}
+                                src={martyr.image_url ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${martyr.image_url}` : "/default.png"}
                                 alt={martyr.name_ar}
                                 className="w-12 h-12 object-cover rounded flex-shrink-0"
                                 fallbackSrc="/default.png"
@@ -628,34 +627,26 @@ const AddMartyrPage = () => {
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/martyrs/public', {
-        method: 'POST',
-        body: formDataToSend
+      await martyrsApi.addPublic(formDataToSend);
+      alert('تم إضافة الشهيد بنجاح. سيتم مراجعته من قبل المدير قبل النشر.');
+      setFormData({
+        name_ar: '',
+        name_en: '',
+        date_of_martyrdom: '',
+        place_of_martyrdom: { state: '', area: '' },
+        education_level: '',
+        university_name: '',
+        faculty: '',
+        department: '',
+        school_state: '',
+        school_locality: '',
+        spouse: '',
+        children: '',
+        occupation: '',
+        bio: '',
+        image: null
       });
-
-      if (response.ok) {
-        alert('تم إضافة الشهيد بنجاح. سيتم مراجعته من قبل المدير قبل النشر.');
-        setFormData({
-          name_ar: '',
-          name_en: '',
-          date_of_martyrdom: '',
-          place_of_martyrdom: { state: '', area: '' },
-          education_level: '',
-          university_name: '',
-          faculty: '',
-          department: '',
-          school_state: '',
-          school_locality: '',
-          spouse: '',
-          children: '',
-          occupation: '',
-          bio: '',
-          image: null
-        });
-        setMarkerPosition(null);
-      } else {
-        alert('حدث خطأ أثناء إضافة الشهيد');
-      }
+      setMarkerPosition(null);
     } catch (error) {
       console.error('Error:', error);
       alert('حدث خطأ أثناء إضافة الشهيد');
@@ -999,22 +990,11 @@ const AddMartyrPage = () => {
       setError('');
 
       try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          localStorage.setItem('adminToken', data.token);
-          window.location.href = '/admin/dashboard';
-        } else {
-          setError(data.error || 'Login failed');
-        }
+        const data = await authApi.login(credentials);
+        localStorage.setItem('adminToken', data.token);
+        window.location.href = '/admin/dashboard';
       } catch (error) {
-        setError('Network error');
+        setError(error.message || 'Network error');
       } finally {
         setLoading(false);
       }
@@ -1097,26 +1077,15 @@ const AddMartyrPage = () => {
           ...(statusFilter && { approval_status: statusFilter })
         });
 
-        const response = await fetch(`http://localhost:5000/api/martyrs/admin/all?${params}`, {
-          headers: {
-            'Authorization': `Bearer ${adminToken}`
-          }
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem('adminToken');
-          window.location.href = '/admin/login';
-          return;
-        }
-
-        const data = await response.json();
+        const data = await adminApi.getAllMartyrs({
+          page: currentPage,
+          limit: 20,
+          ...(searchTerm && { search: searchTerm }),
+          ...(statusFilter && { approval_status: statusFilter })
+        }, adminToken);
         
-        if (response.ok) {
-          setMartyrs(data.martyrs);
-          setTotalPages(data.pagination.totalPages);
-        } else {
-          setError(data.error || 'Failed to fetch martyrs');
-        }
+        setMartyrs(data.martyrs);
+        setTotalPages(data.pagination.totalPages);
       } catch (error) {
         setError('Network error');
       } finally {
@@ -1134,23 +1103,10 @@ const AddMartyrPage = () => {
 
     const handleApprove = async (id, approved) => {
       try {
-        const response = await fetch(`http://localhost:5000/api/martyrs/${id}/approve`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          },
-          body: JSON.stringify({ approved })
-        });
-
-        if (response.ok) {
-          fetchMartyrs();
-        } else {
-          const data = await response.json();
-          setError(data.error || 'Failed to approve martyr');
-        }
+        await adminApi.approveMartyr(id, approved, adminToken);
+        fetchMartyrs();
       } catch (error) {
-        setError('Network error');
+        setError(error.message || 'Network error');
       }
     };
 
@@ -1162,21 +1118,10 @@ const AddMartyrPage = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:5000/api/martyrs/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${adminToken}`
-          }
-        });
-
-        if (response.ok) {
-          fetchMartyrs();
-        } else {
-          const data = await response.json();
-          setError(data.error || 'Failed to delete martyr');
-        }
+        await adminApi.deleteMartyr(id, adminToken);
+        fetchMartyrs();
       } catch (error) {
-        setError('Network error');
+        setError(error.message || 'Network error');
       }
     };
 
@@ -1427,11 +1372,7 @@ const MartyrDetailPage = () => {
 
   const fetchMartyr = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/martyrs/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch martyr details');
-      }
-      const data = await response.json();
+      const data = await martyrsApi.getById(id);
       setMartyr(data.martyr);
     } catch (err) {
       setError(err.message);
@@ -1505,7 +1446,7 @@ const MartyrDetailPage = () => {
           <div className="h-96 bg-gray-200 relative">
             {martyr.image_url ? (
               <ImageWithFallback 
-                src={`http://localhost:5000${martyr.image_url}`} 
+                src={`${getApiBaseUrl()}${martyr.image_url}`} 
                 alt={martyr.name_ar}
                 className="w-full h-full object-contain"
                 fallbackSrc="/default.png"
@@ -1666,43 +1607,26 @@ const AdminEditMartyrPage = () => {
     const fetchMartyr = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/martyrs/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${adminToken}`
-          }
+        const data = await adminApi.getMartyrById(id, adminToken);
+        setMartyr(data.martyr);
+        setFormData({
+          name_ar: data.martyr.name_ar || '',
+          name_en: data.martyr.name_en || '',
+          date_of_martyrdom: data.martyr.date_of_martyrdom || '',
+          place_of_martyrdom: data.martyr.place_of_martyrdom || '',
+          education_level: data.martyr.education_level || '',
+          university_name: data.martyr.university_name || '',
+          faculty: data.martyr.faculty || '',
+          department: data.martyr.department || '',
+          school_state: data.martyr.school_state || '',
+          school_locality: data.martyr.school_locality || '',
+          spouse: data.martyr.spouse || '',
+          children: data.martyr.children || '',
+          occupation: data.martyr.occupation || '',
+          bio: data.martyr.bio || ''
         });
-
-        if (response.status === 401) {
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-          return;
-        }
-
-        const data = await response.json();
-        
-        if (response.ok) {
-          setMartyr(data.martyr);
-          setFormData({
-            name_ar: data.martyr.name_ar || '',
-            name_en: data.martyr.name_en || '',
-            date_of_martyrdom: data.martyr.date_of_martyrdom || '',
-            place_of_martyrdom: data.martyr.place_of_martyrdom || '',
-            education_level: data.martyr.education_level || '',
-            university_name: data.martyr.university_name || '',
-            faculty: data.martyr.faculty || '',
-            department: data.martyr.department || '',
-            school_state: data.martyr.school_state || '',
-            school_locality: data.martyr.school_locality || '',
-            spouse: data.martyr.spouse || '',
-            children: data.martyr.children || '',
-            occupation: data.martyr.occupation || '',
-            bio: data.martyr.bio || ''
-          });
-          if (data.martyr.image_url) {
-            setImagePreview(`http://localhost:5000${data.martyr.image_url}`);
-          }
-        } else {
-          setError(data.error || 'Failed to fetch martyr');
+        if (data.martyr.image_url) {
+          setImagePreview(`${getApiBaseUrl()}${data.martyr.image_url}`);
         }
       } catch (error) {
         setError('Network error');
@@ -1753,28 +1677,9 @@ const AdminEditMartyrPage = () => {
         formDataToSend.append('image', imageFile);
       }
 
-      const response = await fetch(`http://localhost:5000/api/martyrs/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        },
-        body: formDataToSend
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-        return;
-      }
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        alert('تم تحديث الشهيد بنجاح');
-        navigate('/admin/dashboard');
-      } else {
-        setError(data.error || 'Failed to update martyr');
-      }
+      await adminApi.updateMartyr(id, formDataToSend, adminToken);
+      alert('تم تحديث الشهيد بنجاح');
+      navigate('/admin/dashboard');
     } catch (error) {
       setError('Network error');
     } finally {

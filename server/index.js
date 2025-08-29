@@ -58,7 +58,11 @@ app.use(compression());
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? [
+        'https://martyrs-gk348rnps-musaabsalaheldin-9472s-projects.vercel.app',
+        'https://martyrs-c1x43y1fs-musaabsalaheldin-9472s-projects.vercel.app',
+        'https://martyrs.vercel.app'
+      ] 
     : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -153,13 +157,21 @@ process.on('SIGINT', async () => {
 const startServer = async () => {
   try {
     // Test database connection
-    await testConnection();
+    try {
+      await testConnection();
+      console.log('✅ Database connected successfully');
+    } catch (dbError) {
+      console.warn('⚠️  Database connection failed:', dbError.message);
+      console.log('📝 Running in development mode without database');
+      console.log('💡 To use full features, install MySQL and run: npm run setup');
+    }
     
     // Start server
     app.listen(PORT, () => {
       console.log('🚀 Martyrs Archive Server running on port', PORT);
       console.log('📊 Environment:', NODE_ENV);
       console.log('🔗 API URL: http://localhost:' + PORT + '/api');
+      console.log('🌐 Frontend URL: http://localhost:3000');
     });
   } catch (error) {
     console.error('Failed to start server:', error);
