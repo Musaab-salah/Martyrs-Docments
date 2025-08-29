@@ -129,6 +129,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/tributes', tributesRoutes);
 
+
+
 // 404 handler
 app.use('/api/*', (req, res) => {
   res.status(404).json({

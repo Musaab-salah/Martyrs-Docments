@@ -8,6 +8,7 @@ const { pool } = require('../config/database');
 const { upload, handleUploadError } = require('../middleware/upload');
 const { martyrValidation, handleValidationErrors } = require('../middleware/validation');
 const { catchAsync, handleDatabaseError, handleFileError } = require('../utils/errorHandler');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // GET /api/martyrs - Get all martyrs with pagination and search
 router.get('/', catchAsync(async (req, res) => {
@@ -252,6 +253,8 @@ router.post('/public',
 
 // POST /api/martyrs - Add a new martyr (admin endpoint)
 router.post('/', 
+  authenticateToken,
+  requireAdmin,
   upload.single('image'), 
   martyrValidation, 
   handleValidationErrors,
@@ -331,6 +334,8 @@ router.post('/',
 
 // PUT /api/martyrs/:id - Update a martyr
 router.put('/:id', 
+  authenticateToken,
+  requireAdmin,
   upload.single('image'), 
   martyrValidation, 
   handleValidationErrors,
@@ -425,7 +430,10 @@ router.put('/:id',
 }));
 
 // DELETE /api/martyrs/:id - Delete a martyr
-router.delete('/:id', catchAsync(async (req, res) => {
+router.delete('/:id', 
+  authenticateToken,
+  requireAdmin,
+  catchAsync(async (req, res) => {
     const { id } = req.params;
     
   // Check if martyr exists
@@ -449,7 +457,10 @@ router.delete('/:id', catchAsync(async (req, res) => {
 }));
 
 // GET /api/martyrs/admin/all - Get all martyrs for admin (with additional fields)
-router.get('/admin/all', catchAsync(async (req, res) => {
+router.get('/admin/all', 
+  authenticateToken,
+  requireAdmin,
+  catchAsync(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const search = req.query.search || '';
@@ -532,7 +543,10 @@ router.get('/admin/all', catchAsync(async (req, res) => {
 }));
 
 // PATCH /api/martyrs/:id/approve - Approve a martyr
-router.patch('/:id/approve', catchAsync(async (req, res) => {
+router.patch('/:id/approve', 
+  authenticateToken,
+  requireAdmin,
+  catchAsync(async (req, res) => {
   const { id } = req.params;
   const { approved } = req.body;
   

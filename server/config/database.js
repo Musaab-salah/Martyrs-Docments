@@ -8,10 +8,6 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'martyrs_archive',
   charset: 'utf8mb4',
-  // Connection pool settings for better performance
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true,
   // Pool settings
   connectionLimit: 10,
   queueLimit: 0,
@@ -19,17 +15,40 @@ const dbConfig = {
 };
 
 // Create database pool
-const pool = mysql.createPool(dbConfig);
+let pool = null;
+
+// Only create pool if MySQL is available
+const createPool = async () => {
+  try {
+    pool = mysql.createPool(dbConfig);
+    // Test the connection immediately
+    const connection = await pool.getConnection();
+    connection.release();
+    console.log('✅ Database pool created successfully');
+    return true;
+  } catch (error) {
+    console.warn('⚠️  Could not create database pool:', error.message);
+    pool = null;
+    return false;
+  }
+};
+
+// Initialize pool
+createPool();
 
 // Test database connection
 const testConnection = async () => {
+  if (!pool) {
+    throw new Error('Database pool not available');
+  }
+  
   try {
     const connection = await pool.getConnection();
     console.log('✅ Database connection established');
     connection.release();
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    process.exit(1);
+    throw error;
   }
 };
 

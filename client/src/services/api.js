@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
 // Check if we should use mock API (when no backend URL is set)
 const USE_MOCK_API = false; // Disable mock API for production
@@ -23,11 +23,26 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Try to parse error response as JSON, but handle HTML responses gracefully
+        let errorData = {};
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json().catch(() => ({}));
+        } else {
+          // If response is not JSON (e.g., HTML error page), get text instead
+          const errorText = await response.text().catch(() => 'Unknown error');
+          errorData = { message: `Server error: ${response.status} - ${errorText.substring(0, 100)}` };
+        }
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
       
-      return await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        throw new Error('Expected JSON response but received non-JSON content');
+      }
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
@@ -69,21 +84,37 @@ class ApiService {
   }
 
   // POST with FormData (for file uploads)
-  async postFormData(endpoint, formData) {
+  async postFormData(endpoint, formData, customHeaders = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
     try {
       const response = await fetch(url, {
         method: 'POST',
+        headers: customHeaders,
         body: formData,
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Try to parse error response as JSON, but handle HTML responses gracefully
+        let errorData = {};
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json().catch(() => ({}));
+        } else {
+          // If response is not JSON (e.g., HTML error page), get text instead
+          const errorText = await response.text().catch(() => 'Unknown error');
+          errorData = { message: `Server error: ${response.status} - ${errorText.substring(0, 100)}` };
+        }
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
       
-      return await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        throw new Error('Expected JSON response but received non-JSON content');
+      }
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
@@ -120,7 +151,7 @@ export const martyrsApi = {
   getStats: () => {
     if (USE_MOCK_API) return mockMartyrsApi.getStats();
     const api = new ApiService();
-    return api.get('/martyrs/stats/summary');
+    return api.get('/stats/overview');
   },
 
   // Add a new martyr (public endpoint)
@@ -219,6 +250,12 @@ export const adminApi = {
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
     });
+  },
+  
+  addMartyr: (formData, token) => {
+    if (USE_MOCK_API) return mockAdminApi.addMartyr(formData, token);
+    const api = new ApiService();
+    return api.postFormData('/martyrs', formData, { 'Authorization': `Bearer ${token}` });
   }
 };
 
