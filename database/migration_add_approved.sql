@@ -19,3 +19,5 @@ SELECT 'Migration completed successfully!' as status;
 SELECT COUNT(*) as total_martyrs FROM martyrs;
 SELECT COUNT(*) as approved_martyrs FROM martyrs WHERE approved = TRUE;
 SELECT COUNT(*) as pending_martyrs FROM martyrs WHERE approved = FALSE;
+
+
