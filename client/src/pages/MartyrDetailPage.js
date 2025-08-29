@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { martyrsApi } from '../services/api';
+import { formatDateToGregorian } from '../utils/dateFormatter';
 
 // Helper function to get API base URL
 const getApiBaseUrl = () => {
@@ -110,7 +111,7 @@ const MartyrDetailPage = () => {
               <div className="space-y-4">
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <h3 className="font-semibold text-green-800 mb-2">تاريخ الاستشهاد</h3>
-                  <p className="text-lg">{new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
+                  <p className="text-lg">{formatDateToGregorian(martyr.date_of_martyrdom)}</p>
                 </div>
                 
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">

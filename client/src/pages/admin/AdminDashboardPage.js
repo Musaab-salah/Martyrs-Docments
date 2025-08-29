@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../../components/Header';
 import ImageWithFallback from '../../components/ImageWithFallback';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorMessage from '../../components/ErrorMessage';
 import { adminApi } from '../../services/api';
+import { formatDateToGregorian } from '../../utils/dateFormatter';
 
 // Helper function to get API base URL
 const getApiBaseUrl = () => {
@@ -25,6 +28,7 @@ const AdminDashboardPage = () => {
   const fetchMartyrs = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await adminApi.getAllMartyrs({
         page: currentPage,
         limit: 20,
@@ -35,7 +39,7 @@ const AdminDashboardPage = () => {
       setMartyrs(data.martyrs);
       setTotalPages(data.pagination.totalPages);
     } catch (error) {
-      setError('Network error');
+      setError('خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
@@ -54,7 +58,7 @@ const AdminDashboardPage = () => {
       await adminApi.approveMartyr(id, approved, adminToken);
       fetchMartyrs();
     } catch (error) {
-      setError(error.message || 'Network error');
+      setError(error.message || 'خطأ في تحديث الحالة');
     }
   };
 
@@ -67,7 +71,7 @@ const AdminDashboardPage = () => {
       await adminApi.deleteMartyr(id, adminToken);
       fetchMartyrs();
     } catch (error) {
-      setError(error.message || 'Network error');
+      setError(error.message || 'خطأ في حذف الشهيد');
     }
   };
 
@@ -78,7 +82,7 @@ const AdminDashboardPage = () => {
       const data = await adminApi.getMartyrById(id, adminToken);
       setPreviewMartyr(data.martyr);
     } catch (error) {
-      setError(error.message || 'Network error');
+      setError(error.message || 'خطأ في تحميل البيانات');
       setShowPreviewModal(false);
     } finally {
       setPreviewLoading(false);
@@ -90,402 +94,381 @@ const AdminDashboardPage = () => {
     setPreviewMartyr(null);
   };
 
-  const getStatusBadge = (approved) => {
-    if (approved) {
-      return (
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-          مُوافق عليه
-        </span>
-      );
+  // Function to get status based on approved field and any additional status logic
+  const getMartyrStatus = (martyr) => {
+    // Use the status field if available, otherwise fall back to approved field
+    if (martyr.status && martyr.status !== null && martyr.status !== undefined) {
+      return martyr.status;
+    } else if (martyr.approved === true || martyr.approved === 1) {
+      return 'approved';
+    } else if (martyr.approved === false || martyr.approved === 0) {
+      return 'pending';
     } else {
-      return (
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-          في الانتظار
-        </span>
-      );
+      return 'pending';
     }
+  };
+
+  // Function to get status badge with proper color coding
+  const getStatusBadge = (martyr) => {
+    const status = getMartyrStatus(martyr);
+    
+    switch (status) {
+      case 'approved':
+        return (
+          <span className="badge-success">
+            مُوافق عليه
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="badge-error">
+            مرفوض
+          </span>
+        );
+      case 'pending':
+      default:
+        return (
+          <span className="badge-warning">
+            في الانتظار
+          </span>
+        );
+    }
+  };
+
+  // Function to get status text for display
+  const getStatusText = (martyr) => {
+    const status = getMartyrStatus(martyr);
+    
+    switch (status) {
+      case 'approved':
+        return 'مُوافق عليه';
+      case 'rejected':
+        return 'مرفوض';
+      case 'pending':
+      default:
+        return 'في الانتظار';
+    }
+  };
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      // For now, we'll use the approved parameter for backward compatibility
+      // until the status migration is run
+      const approved = newStatus === 'approved';
+      await adminApi.approveMartyr(id, approved, adminToken, newStatus);
+      fetchMartyrs();
+    } catch (error) {
+      setError(error.message || 'خطأ في تحديث الحالة');
+    }
+  };
+
+  const getEducationLevelText = (level) => {
+    const educationMap = {
+      'primary': 'ابتدائي',
+      'secondary': 'ثانوي',
+      'university': 'جامعي',
+      'postgraduate': 'دراسات عليا',
+      'other': 'أخرى'
+    };
+    return educationMap[level] || level;
   };
 
   if (loading && martyrs.length === 0) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-green-600 text-xl">جاري التحميل...</div>
+      <div className="min-h-screen bg-white" dir="rtl">
+        <Header />
+        <div className="section-padding">
+          <div className="container-responsive">
+            <LoadingSpinner size="xl" text="جاري تحميل البيانات..." />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" dir="rtl">
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
+      <main className="section-padding">
+        <div className="container-responsive">
+          {error && (
+            <ErrorMessage 
+              error={error} 
+              onRetry={fetchMartyrs}
+              className="mb-6"
+            />
+          )}
 
-        {/* Filters */}
-        <div className="bg-white shadow-lg border border-gray-100 rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">البحث</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="البحث بالاسم أو المهنة..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">الحالة</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">جميع الحالات</option>
-                <option value="pending">في الانتظار</option>
-                <option value="approved">مُوافق عليه</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => window.location.href = '/admin/add-martyr'}
-                className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-              >
-                إضافة شهيد جديد
-              </button>
+          {/* Page Header */}
+          <div className="mb-8">
+            <h1 className="text-responsive-3xl font-bold text-primary-800 mb-2">لوحة تحكم المدير</h1>
+            <p className="text-gray-600">إدارة بيانات الشهداء والمراجعة</p>
+          </div>
+
+          {/* Filters */}
+          <div className="card mb-8">
+            <div className="card-body">
+              <div className="grid-responsive-3 gap-6">
+                <div className="form-group">
+                  <label className="form-label">البحث</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="البحث بالاسم أو المهنة..."
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">الحالة</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="">جميع الحالات</option>
+                    <option value="pending">في الانتظار</option>
+                    <option value="approved">مُوافق عليه</option>
+                    {/* Note: 'rejected' status requires the status migration to be run */}
+                    <option value="rejected">مرفوض</option>
+                  </select>
+                </div>
+                <div className="form-group flex items-end">
+                  <button
+                    onClick={() => window.location.href = '/admin/add-martyr'}
+                    className="btn btn-primary w-full"
+                  >
+                    إضافة شهيد جديد
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Table */}
-        <div className="bg-white shadow-lg border border-gray-100 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    الاسم
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    تاريخ الاستشهاد
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    الموقع
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    الحالة
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    الإجراءات
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {martyrs.map((martyr) => {
-                  // Handle place_of_martyrdom - it could be a string or JSON
-                  let placeData;
-                  try {
-                    placeData = JSON.parse(martyr.place_of_martyrdom || '{}');
-                  } catch (error) {
-                    // If it's not valid JSON, treat it as a simple string
-                    placeData = { state: martyr.place_of_martyrdom || '', area: '' };
-                  }
-                  return (
-                    <tr key={martyr.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{martyr.name_ar}</div>
-                          <div className="text-sm text-gray-500">{martyr.name_en}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div>
-                          <div>{placeData.state}</div>
-                          {placeData.area && <div className="text-gray-500">{placeData.area}</div>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(martyr.approved)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2 space-x-reverse">
-                          <button
-                            onClick={() => handlePreview(martyr.id)}
-                            className="text-purple-600 hover:text-purple-900"
-                          >
-                            معاينة
-                          </button>
-                          {!martyr.approved ? (
-                            <button
-                              onClick={() => handleApprove(martyr.id, true)}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              موافقة
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleApprove(martyr.id, false)}
-                              className="text-yellow-600 hover:text-yellow-900"
-                            >
-                              إلغاء الموافقة
-                            </button>
+          {/* Table */}
+          <div className="card">
+            <div className="table-container">
+              <table className="table">
+                <thead className="table-header">
+                  <tr>
+                    <th className="table-header-cell">الاسم</th>
+                    <th className="table-header-cell">تاريخ الاستشهاد</th>
+                    <th className="table-header-cell">الموقع</th>
+                    <th className="table-header-cell">الحالة</th>
+                    <th className="table-header-cell">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="table-body">
+                  {martyrs.map((martyr) => {
+                    // Handle place_of_martyrdom - it could be a string or JSON
+                    let placeData;
+                    try {
+                      placeData = JSON.parse(martyr.place_of_martyrdom || '{}');
+                    } catch (error) {
+                      // If it's not valid JSON, treat it as a simple string
+                      placeData = { state: martyr.place_of_martyrdom || '', area: '' };
+                    }
+                    
+                    const martyrStatus = getMartyrStatus(martyr);
+                    
+                    return (
+                      <tr key={martyr.id} className="table-row">
+                        <td className="table-cell">
+                          <div className="flex items-center space-x-3 space-x-reverse">
+                            <div className="flex-shrink-0 h-12 w-12">
+                              <ImageWithFallback
+                                src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
+                                alt={martyr.name_ar}
+                                className="h-12 w-12 rounded-full object-cover"
+                                fallbackSrc="/default.png"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{martyr.name_ar}</div>
+                              <div className="text-sm text-gray-500">{martyr.name_en}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="table-cell">
+                          <div className="text-sm text-gray-900">
+                            {formatDateToGregorian(martyr.date_of_martyrdom)}
+                          </div>
+                        </td>
+                        <td className="table-cell">
+                          <div className="text-sm text-gray-900">{placeData.state}</div>
+                          {placeData.area && (
+                            <div className="text-sm text-gray-500">{placeData.area}</div>
                           )}
-                          <button
-                            onClick={() => window.location.href = `/admin/edit-martyr/${martyr.id}`}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            تعديل
-                          </button>
-                          <button
-                            onClick={() => handleDelete(martyr.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            حذف
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="table-cell">
+                          {getStatusBadge(martyr)}
+                        </td>
+                        <td className="table-cell">
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <button
+                              onClick={() => handlePreview(martyr.id)}
+                              className="btn btn-ghost btn-sm"
+                              title="معاينة"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => window.location.href = `/admin/edit-martyr/${martyr.id}`}
+                              className="btn btn-ghost btn-sm"
+                              title="تعديل"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {martyrStatus === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleStatusUpdate(martyr.id, 'approved')}
+                                  className="btn btn-success btn-sm"
+                                  title="موافقة"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleStatusUpdate(martyr.id, 'rejected')}
+                                  className="btn btn-error btn-sm"
+                                  title="رفض"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                            {martyrStatus === 'approved' && (
+                              <button
+                                onClick={() => handleStatusUpdate(martyr.id, 'pending')}
+                                className="btn btn-warning btn-sm"
+                                title="إلغاء الموافقة"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                              </button>
+                            )}
+                            {martyrStatus === 'rejected' && (
+                              <button
+                                onClick={() => handleStatusUpdate(martyr.id, 'pending')}
+                                className="btn btn-warning btn-sm"
+                                title="إعادة إلى قائمة الانتظار"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(martyr.id)}
+                              className="btn btn-error btn-sm"
+                              title="حذف"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  السابق
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  التالي
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    صفحة <span className="font-medium">{currentPage}</span> من <span className="font-medium">{totalPages}</span>
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      السابق
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      التالي
-                    </button>
-                  </nav>
-                </div>
-              </div>
+            <div className="flex items-center justify-center space-x-2 space-x-reverse mt-8">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-outline btn-sm disabled:opacity-50"
+              >
+                السابق
+              </button>
+              <span className="text-sm text-gray-600">
+                صفحة {currentPage} من {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-outline btn-sm disabled:opacity-50"
+              >
+                التالي
+              </button>
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Preview Modal */}
       {showPreviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">معاينة بيانات الشهيد</h2>
+        <div className="modal-overlay" onClick={closePreviewModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="text-lg font-medium text-gray-900">معاينة الشهيد</h3>
               <button
                 onClick={closePreviewModal}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600"
               >
-                ×
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            
-            <div className="p-6">
+            <div className="modal-body">
               {previewLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-green-600"></div>
-                  <span className="ml-3 text-gray-600">جاري تحميل البيانات...</span>
-                </div>
+                <LoadingSpinner size="lg" text="جاري التحميل..." />
               ) : previewMartyr ? (
                 <div className="space-y-6">
-                  {/* Hero Section with Image */}
-                  <div className="bg-gray-100 rounded-lg p-6">
-                    <div className="flex items-center space-x-6 space-x-reverse">
-                      <div className="w-32 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {previewMartyr.image_url ? (
-                          <ImageWithFallback 
-                            src={`${getApiBaseUrl()}${previewMartyr.image_url}`} 
-                            alt={previewMartyr.name_ar}
-                            className="w-full h-full object-cover"
-                            fallbackSrc="/default.png"
-                          />
-                        ) : (
-                          <ImageWithFallback 
-                            src="/default.png" 
-                            alt={previewMartyr.name_ar}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
+                  <div className="text-center">
+                    <ImageWithFallback
+                      src={previewMartyr.image_url ? `${getApiBaseUrl()}${previewMartyr.image_url}` : "/default.png"}
+                      alt={previewMartyr.name_ar}
+                      className="w-32 h-32 rounded-full object-cover mx-auto"
+                      fallbackSrc="/default.png"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-lg font-bold text-primary-800">{previewMartyr.name_ar}</h4>
+                      <p className="text-gray-600">{previewMartyr.name_en}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">تاريخ الاستشهاد:</span>
+                        <p className="text-gray-900">{formatDateToGregorian(previewMartyr.date_of_martyrdom)}</p>
                       </div>
                       <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{previewMartyr.name_ar}</h1>
-                        <p className="text-xl text-gray-600">{previewMartyr.name_en}</p>
+                        <span className="font-medium text-gray-700">المستوى التعليمي:</span>
+                        <p className="text-gray-900">{getEducationLevelText(previewMartyr.education_level)}</p>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Basic Information Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 className="font-semibold text-green-800 mb-2">تاريخ الاستشهاد</h3>
-                        <p className="text-lg">{new Date(previewMartyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
+                      <div>
+                        <span className="font-medium text-gray-700">المهنة:</span>
+                        <p className="text-gray-900">{previewMartyr.occupation}</p>
                       </div>
-                      
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 className="font-semibold text-green-800 mb-2">مكان الاستشهاد</h3>
-                        {(() => {
-                          let placeData;
-                          try {
-                            placeData = JSON.parse(previewMartyr.place_of_martyrdom || '{}');
-                          } catch (error) {
-                            placeData = { state: previewMartyr.place_of_martyrdom || '', area: '' };
-                          }
-                          return (
-                            <>
-                              <p className="text-lg">{placeData.state}</p>
-                              {placeData.area && <p className="text-sm text-gray-600">المنطقة: {placeData.area}</p>}
-                            </>
-                          );
-                        })()}
-                      </div>
-                      
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 className="font-semibold text-green-800 mb-2">المهنة</h3>
-                        <p className="text-lg">{previewMartyr.occupation}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 className="font-semibold text-green-800 mb-2">المستوى التعليمي</h3>
-                        <p className="text-lg">{
-                          previewMartyr.education_level === 'primary' ? 'ابتدائي' :
-                          previewMartyr.education_level === 'secondary' ? 'ثانوي' :
-                          previewMartyr.education_level === 'university' ? 'جامعي' :
-                          previewMartyr.education_level === 'postgraduate' ? 'دراسات عليا' :
-                          previewMartyr.education_level === 'other' ? 'أخرى' :
-                          previewMartyr.education_level
-                        }</p>
-                      </div>
-                      
-                      {previewMartyr.university_name && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <h3 className="font-semibold text-green-800 mb-2">الجامعة</h3>
-                          <p className="text-lg">{previewMartyr.university_name}</p>
-                          {previewMartyr.faculty && <p className="text-sm text-gray-600">الكلية: {previewMartyr.faculty}</p>}
-                          {previewMartyr.department && <p className="text-sm text-gray-600">القسم: {previewMartyr.department}</p>}
+                      <div>
+                        <span className="font-medium text-gray-700">الحالة:</span>
+                        <div className="mt-1">
+                          {getStatusBadge(previewMartyr)}
                         </div>
-                      )}
-                      
-                      {(previewMartyr.school_state || previewMartyr.school_locality) && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <h3 className="font-semibold text-green-800 mb-2">معلومات المدرسة</h3>
-                          {previewMartyr.school_state && <p className="text-lg">الولاية: {previewMartyr.school_state}</p>}
-                          {previewMartyr.school_locality && <p className="text-sm text-gray-600">المحلية: {previewMartyr.school_locality}</p>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Personal Information */}
-                  {(previewMartyr.spouse || previewMartyr.children) && (
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">المعلومات الشخصية</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {previewMartyr.spouse && (
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 className="font-semibold text-gray-800 mb-2">الزوج/الزوجة</h3>
-                            <p className="text-lg">{previewMartyr.spouse}</p>
-                          </div>
-                        )}
-                        {previewMartyr.children && (
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 className="font-semibold text-gray-800 mb-2">عدد الأطفال</h3>
-                            <p className="text-lg">{previewMartyr.children}</p>
-                          </div>
-                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Biography */}
-                  {previewMartyr.bio && (
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">السيرة الذاتية</h2>
-                      <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                        <p className="text-lg leading-relaxed text-gray-700">{previewMartyr.bio}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end space-x-4 space-x-reverse pt-6 border-t border-gray-200">
-                    <button
-                      onClick={closePreviewModal}
-                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                    >
-                      إغلاق
-                    </button>
-                    {!previewMartyr.approved ? (
-                      <button
-                        onClick={() => {
-                          handleApprove(previewMartyr.id, true);
-                          closePreviewModal();
-                        }}
-                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                      >
-                        موافقة
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          handleApprove(previewMartyr.id, false);
-                          closePreviewModal();
-                        }}
-                        className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
-                      >
-                        إلغاء الموافقة
-                      </button>
-                    )}
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">لم يتم العثور على بيانات الشهيد</p>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

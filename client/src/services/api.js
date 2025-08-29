@@ -217,13 +217,14 @@ export const adminApi = {
     return api.get('/martyrs/admin/all', params, { 'Authorization': `Bearer ${token}` });
   },
   
-  approveMartyr: (id, approved, token) => {
+  approveMartyr: (id, approved, token, status = null) => {
     if (USE_MOCK_API) return mockAdminApi.approveMartyr(id, approved, token);
     const api = new ApiService();
+    const body = status ? { status } : { approved };
     return api.request(`/martyrs/${id}/approve`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ approved })
+      body: JSON.stringify(body)
     });
   },
   

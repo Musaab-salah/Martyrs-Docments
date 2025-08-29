@@ -12,7 +12,8 @@
     "start": "node server/index.js",
     "setup": "node setup.js",
     "db:init": "node setup.js",
-    "migrate": "node run-migration.js"
+    "migrate": "node run-migration.js",
+    "migrate:status": "node run-status-migration.js"
   },
   "keywords": [
     "martyrs",

@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import Header from '../components/Header';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { martyrsApi } from '../services/api';
+import { formatDateToGregorian } from '../utils/dateFormatter';
 
 // Helper function to get API base URL
 const getApiBaseUrl = () => {
@@ -211,7 +212,7 @@ const MapPage = () => {
                       <div className="text-right" dir="rtl">
                         <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
                         <p className="text-sm text-gray-600">{martyr.name_en}</p>
-                        <p className="text-sm"><strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}</p>
+                        <p className="text-sm"><strong>التاريخ:</strong> {formatDateToGregorian(martyr.date_of_martyrdom)}</p>
                         <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
                         {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
                         <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
@@ -272,7 +273,7 @@ const MapPage = () => {
                                 <h4 className="font-semibold text-sm">{martyr.name_ar}</h4>
                                 <p className="text-xs text-gray-600">{martyr.name_en}</p>
                                 <p className="text-xs text-gray-700">
-                                  <strong>التاريخ:</strong> {new Date(martyr.date_of_martyrdom).toLocaleDateString('ar-SA')}
+                                  <strong>التاريخ:</strong> {formatDateToGregorian(martyr.date_of_martyrdom)}
                                 </p>
                                 <p className="text-xs text-gray-700">
                                   <strong>المهنة:</strong> {martyr.occupation}
