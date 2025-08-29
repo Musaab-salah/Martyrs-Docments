@@ -220,10 +220,25 @@ export const adminApi = {
   approveMartyr: (id, approved, token, status = null) => {
     if (USE_MOCK_API) return mockAdminApi.approveMartyr(id, approved, token);
     const api = new ApiService();
-    const body = status ? { status } : { approved };
+    
+    // Prepare the request body
+    const body = { 
+      approved: approved
+    };
+    
+    // Add status if provided
+    if (status) {
+      body.status = status;
+    }
+    
+    console.log('Approving martyr:', { id, approved, status, body });
+    
     return api.request(`/martyrs/${id}/approve`, {
       method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(body)
     });
   },
@@ -240,7 +255,7 @@ export const adminApi = {
   getMartyrById: (id, token) => {
     if (USE_MOCK_API) return mockAdminApi.getMartyrById(id, token);
     const api = new ApiService();
-    return api.get(`/martyrs/${id}`, {}, { 'Authorization': `Bearer ${token}` });
+    return api.get(`/martyrs/admin/${id}`, {}, { 'Authorization': `Bearer ${token}` });
   },
   
   updateMartyr: (id, formData, token) => {

@@ -549,11 +549,16 @@ router.patch('/:id/approve',
   const { id } = req.params;
   const { approved, status } = req.body;
   
+  console.log('Approval request received:', { id, approved, status, body: req.body });
+  
   // Check if martyr exists
   const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
   if (existing.length === 0) {
+    console.log('Martyr not found:', id);
     return res.status(404).json({ error: 'Martyr not found' });
   }
+  
+  console.log('Existing martyr:', existing[0]);
   
   // Check if status column exists
   let hasStatusColumn = false;
@@ -565,7 +570,9 @@ router.patch('/:id/approve',
     `, [process.env.DB_NAME || 'martyrs_archive']);
     
     hasStatusColumn = columns.length > 0;
+    console.log('Status column exists:', hasStatusColumn);
   } catch (error) {
+    console.error('Error checking status column:', error);
     hasStatusColumn = false;
   }
   
@@ -583,15 +590,19 @@ router.patch('/:id/approve',
     newApproved = approved;
   }
   
+  console.log('New status values:', { newStatus, newApproved });
+  
   // Update database based on available structure
   if (hasStatusColumn) {
     // Update both status and approved field for backward compatibility
+    console.log('Updating with status column');
     await pool.execute(
       'UPDATE martyrs SET status = ?, approved = ? WHERE id = ?', 
       [newStatus, newApproved ? 1 : 0, id]
     );
   } else {
     // Only update approved field (old structure)
+    console.log('Updating without status column');
     await pool.execute(
       'UPDATE martyrs SET approved = ? WHERE id = ?', 
       [newApproved ? 1 : 0, id]
@@ -604,6 +615,8 @@ router.patch('/:id/approve',
     [id]
   );
 
+  console.log('Updated martyr:', updatedMartyr[0]);
+
   const statusMessages = {
     'approved': 'Martyr approved successfully',
     'rejected': 'Martyr rejected successfully',
@@ -614,6 +627,31 @@ router.patch('/:id/approve',
     message: statusMessages[newStatus] || 'Martyr status updated successfully',
     martyr: updatedMartyr[0]
   });
+}));
+
+// GET /api/martyrs/admin/:id - Get a specific martyr for admin (including unapproved)
+router.get('/admin/:id', 
+  authenticateToken,
+  requireAdmin,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    
+    const query = `
+      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+             education_level, university_name, faculty, department,
+             school_state, school_locality, spouse, children, occupation, bio, image_url, 
+             approved, status, created_at, updated_at
+      FROM martyrs 
+      WHERE id = ?
+    `;
+    
+    const [martyrs] = await pool.execute(query, [id]);
+
+    if (martyrs.length === 0) {
+      return res.status(404).json({ error: 'Martyr not found' });
+    }
+
+    res.json({ martyr: martyrs[0] });
 }));
 
 module.exports = router;

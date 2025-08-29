@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import Header from '../components/Header';
 import { martyrsApi } from '../services/api';
+import { useNavigate } from 'react-router-dom'; // Added useNavigate import
 
 const AddMartyrPage = () => {
   // Sudan States list
@@ -65,6 +66,7 @@ const AddMartyrPage = () => {
   });
 
   const [markerPosition, setMarkerPosition] = useState(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -136,6 +138,7 @@ const AddMartyrPage = () => {
         image: null
       });
       setMarkerPosition(null);
+      navigate('/'); // Redirect to homepage after successful martyr addition
     } catch (error) {
       console.error('Error:', error);
       alert('حدث خطأ أثناء إضافة الشهيد');

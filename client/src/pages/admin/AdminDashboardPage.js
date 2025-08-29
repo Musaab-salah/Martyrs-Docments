@@ -152,13 +152,41 @@ const AdminDashboardPage = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      // For now, we'll use the approved parameter for backward compatibility
-      // until the status migration is run
+      console.log('handleStatusUpdate called:', { id, newStatus, adminToken });
+      
+      // Check if admin token exists
+      if (!adminToken) {
+        const errorMessage = 'جلسة المدير منتهية. يرجى إعادة تسجيل الدخول.';
+        setError(errorMessage);
+        alert(errorMessage);
+        window.location.href = '/admin/login';
+        return;
+      }
+      
+      // Update martyr status (approve/reject/pending)
+      // This is used for user-added martyrs that need admin approval
       const approved = newStatus === 'approved';
-      await adminApi.approveMartyr(id, approved, adminToken, newStatus);
+      console.log('Calling adminApi.approveMartyr with:', { id, approved, adminToken, newStatus });
+      
+      const result = await adminApi.approveMartyr(id, approved, adminToken, newStatus);
+      console.log('Approval successful:', result);
+      
+      // Show success message
+      const statusText = {
+        'approved': 'تمت الموافقة بنجاح',
+        'rejected': 'تم الرفض بنجاح',
+        'pending': 'تم إعادة الحالة إلى الانتظار'
+      };
+      
+      alert(statusText[newStatus] || 'تم تحديث الحالة بنجاح');
+      
+      console.log('Approval successful, refreshing data...');
       fetchMartyrs();
     } catch (error) {
-      setError(error.message || 'خطأ في تحديث الحالة');
+      console.error('Error in handleStatusUpdate:', error);
+      const errorMessage = error.message || 'خطأ في تحديث الحالة';
+      setError(errorMessage);
+      alert(`خطأ: ${errorMessage}`);
     }
   };
 
@@ -325,6 +353,7 @@ const AdminDashboardPage = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
+                            {/* Only show approval buttons for pending martyrs (user-added) */}
                             {martyrStatus === 'pending' && (
                               <>
                                 <button
@@ -347,6 +376,7 @@ const AdminDashboardPage = () => {
                                 </button>
                               </>
                             )}
+                            {/* Show status change buttons for approved/rejected martyrs */}
                             {martyrStatus === 'approved' && (
                               <button
                                 onClick={() => handleStatusUpdate(martyr.id, 'pending')}
