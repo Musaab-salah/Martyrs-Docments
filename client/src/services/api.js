@@ -1,7 +1,7 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Check if we should use mock API (when no backend URL is set)
-const USE_MOCK_API = !process.env.REACT_APP_API_URL || process.env.REACT_APP_API_URL === 'https://your-backend-url.com';
+const USE_MOCK_API = false; // Disable mock API for production
 
 class ApiService {
   constructor() {

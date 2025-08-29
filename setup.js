@@ -118,20 +118,20 @@ async function setupDatabase() {
     // Create default super admin account
     console.log('👤 Creating default admin account...');
     
-    const [existingAdmins] = await connection.execute('SELECT id FROM admins WHERE username = ?', ['admin']);
+    const [existingAdmins] = await connection.execute('SELECT id FROM admins WHERE username = ?', ['sudansust']);
     
     if (existingAdmins.length === 0) {
       const saltRounds = 12;
-      const passwordHash = await bcrypt.hash('admin123', saltRounds);
+      const passwordHash = await bcrypt.hash('sust@1989', saltRounds);
       
       await connection.execute(`
         INSERT INTO admins (username, email, password_hash, role, is_active) 
         VALUES (?, ?, ?, ?, ?)
-      `, ['admin', 'admin@martyrsarchive.com', passwordHash, 'super_admin', true]);
+      `, ['sudansust', 'sudansust@martyrsarchive.com', passwordHash, 'super_admin', true]);
       
       console.log('✅ Default admin account created');
-      console.log('   Username: admin');
-      console.log('   Password: admin123');
+      console.log('   Username: sudansust');
+      console.log('   Password: sust@1989');
       console.log('   ⚠️  Please change these credentials immediately after first login!');
     } else {
       console.log('ℹ️  Admin account already exists');
