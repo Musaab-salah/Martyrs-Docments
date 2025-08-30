@@ -13,7 +13,8 @@
     "setup": "node setup.js",
     "db:init": "node setup.js",
     "migrate": "node run-migration.js",
-    "migrate:status": "node run-status-migration.js"
+    "migrate:status": "node run-status-migration.js",
+    "postinstall": "npm rebuild sharp"
   },
   "keywords": [
     "martyrs",
@@ -23,6 +24,9 @@
   ],
   "author": "Martyrs Archive Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.16.0"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
