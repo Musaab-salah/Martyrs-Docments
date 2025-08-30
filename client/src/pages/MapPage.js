@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Header from '../components/Header';
@@ -53,7 +54,8 @@ const MapPage = () => {
 
   const fetchMartyrs = async () => {
     try {
-      const data = await martyrsApi.getAll();
+      // Fetch all martyrs by setting a very high limit
+      const data = await martyrsApi.getAll({ limit: 10000 });
       setMartyrs(data.martyrs);
     } catch (err) {
       console.error('Error fetching martyrs:', err);
@@ -188,56 +190,96 @@ const MapPage = () => {
             />
             
             {viewMode === 'clustering' ? (
-              // Option 1: Individual Markers - shows all individual markers
-              martyrs.map((martyr) => {
-                let placeData;
-                try {
-                  placeData = JSON.parse(martyr.place_of_martyrdom);
-                } catch (error) {
-                  placeData = { state: martyr.place_of_martyrdom, area: '' };
-                }
-
-                // Use state coordinates for map display
-                let position = stateCoordinates[placeData.state];
-                
-                if (!position) return null;
-                
-                return (
-                  <Marker 
-                    key={martyr.id} 
-                    position={position}
-                    icon={createCustomIcon(1)}
-                  >
-                    <Popup>
-                      <div className="text-right" dir="rtl">
-                        <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
-                        <p className="text-sm text-gray-600">{martyr.name_en}</p>
-                        <p className="text-sm"><strong>التاريخ:</strong> {formatDateToGregorian(martyr.date_of_martyrdom)}</p>
-                        <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
-                        {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
-                        <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
-                        <ImageWithFallback 
-                          src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
-                          alt={martyr.name_ar}
-                          className="w-20 h-20 object-cover rounded mt-2"
-                          fallbackSrc="/default.png"
-                        />
-                        {martyr.bio && (
-                          <p className="text-sm mt-2">{martyr.bio.substring(0, 100)}...</p>
-                        )}
-                        <div className="mt-3">
-                          <Link 
-                            to={`/martyr/${martyr.id}`}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-                          >
-                            عرض التفاصيل
-                          </Link>
-                        </div>
+              // Option 1: Individual Markers with Clustering - shows all individual markers with clustering
+              <MarkerClusterGroup
+                chunkedLoading
+                maxClusterRadius={60}
+                spiderfyOnMaxZoom={true}
+                polygonOptions={{
+                  fillColor: '#10b981',
+                  color: '#059669',
+                  weight: 0.5,
+                  opacity: 1,
+                  fillOpacity: 0.3
+                }}
+                iconCreateFunction={(cluster) => {
+                  const count = cluster.getChildCount();
+                  const size = Math.min(count * 3 + 20, 50);
+                  return L.divIcon({
+                    html: `
+                      <div style="
+                        background-color: #059669;
+                        width: ${size}px;
+                        height: ${size}px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-weight: bold;
+                        font-size: ${Math.min(count * 2 + 10, 16)}px;
+                      ">
+                        ${count}
                       </div>
-                    </Popup>
-                  </Marker>
-                );
-              })
+                    `,
+                    className: 'cluster-marker',
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2]
+                  });
+                }}
+              >
+                {martyrs.map((martyr) => {
+                  let placeData;
+                  try {
+                    placeData = JSON.parse(martyr.place_of_martyrdom);
+                  } catch (error) {
+                    placeData = { state: martyr.place_of_martyrdom, area: '' };
+                  }
+
+                  // Use state coordinates for map display
+                  let position = stateCoordinates[placeData.state];
+                  
+                  if (!position) return null;
+                  
+                  return (
+                    <Marker 
+                      key={martyr.id} 
+                      position={position}
+                      icon={createCustomIcon(1)}
+                    >
+                      <Popup>
+                        <div className="text-right" dir="rtl">
+                          <h3 className="font-bold text-lg">{martyr.name_ar}</h3>
+                          <p className="text-sm text-gray-600">{martyr.name_en}</p>
+                          <p className="text-sm"><strong>التاريخ:</strong> {formatDateToGregorian(martyr.date_of_martyrdom)}</p>
+                          <p className="text-sm"><strong>الولاية:</strong> {placeData.state}</p>
+                          {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
+                          <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
+                          <ImageWithFallback 
+                            src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
+                            alt={martyr.name_ar}
+                            className="w-20 h-20 object-cover rounded mt-2"
+                            fallbackSrc="/default.png"
+                          />
+                          {martyr.bio && (
+                            <p className="text-sm mt-2">{martyr.bio.substring(0, 100)}...</p>
+                          )}
+                          <div className="mt-3">
+                            <Link 
+                              to={`/martyr/${martyr.id}`}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                            >
+                              عرض التفاصيل
+                            </Link>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MarkerClusterGroup>
             ) : (
               // Option 2: Grouped Markers - one marker per location with all martyrs in popup
               groupedLocations.map((location, index) => (
