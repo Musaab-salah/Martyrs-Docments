@@ -219,7 +219,7 @@ const AddMartyrPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  الولاية *
+                  الولاية  (مكان الاستشهاد )*
                 </label>
                 <select
                   name="state"
@@ -282,7 +282,7 @@ const AddMartyrPage = () => {
                   </MapContainer>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  يتم عرض الموقع التقريبي لمركز الولاية المختارة
+                  يتم عرض الموقع التقريبي لمركز الولاية  (مكان الاستشهاد )المختارة
                 </p>
               </div>
             )}
