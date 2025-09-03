@@ -17,6 +17,7 @@
     "backup": "node backup_database.js",
     "backup:schema": "node backup_database.js --schema-only",
     "backup:data": "node backup_database.js --data-only",
+    "backup:nodejs": "node backup_database.js --nodejs-only",
     "test:backup": "node test_backup.js",
     "postinstall": "npm rebuild sharp"
   },

@@ -29,7 +29,9 @@ const backupConfig = {
   retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS) || 30,
   compressBackups: true,
   includeSchema: true,
-  includeData: true
+  includeData: true,
+  skipMysqldump: false,
+  skipPrivilegeCheck: false
 };
 
 class DatabaseBackup {
@@ -76,15 +78,16 @@ class DatabaseBackup {
       mysqldumpArgs.push('-p' + password);
     }
 
-    // Add database options
+    // Add database options (with reduced privileges in mind)
     mysqldumpArgs.push(
       '--single-transaction',
       '--routines',
       '--triggers',
       '--events',
-      '--add-drop-database',
       '--add-drop-table',
-      '--default-character-set=utf8mb4'
+      '--default-character-set=utf8mb4',
+      '--no-tablespaces',  // Skip tablespaces if no PROCESS privilege
+      '--skip-lock-tables' // Skip LOCK TABLES if no LOCK TABLES privilege
     );
     
     // Add database name
@@ -157,7 +160,69 @@ class DatabaseBackup {
       
       return outputFile;
     } catch (error) {
+      // Check if it's a permission-related error and suggest fallback
+      if (this.isPermissionError(error.message)) {
+        console.log('⚠️  mysqldump failed due to insufficient privileges');
+        console.log('💡 This is common with limited database users');
+        console.log('🔄 Falling back to Node.js backup method...');
+        throw new Error('PERMISSION_DENIED');
+      }
       throw new Error(`mysqldump failed: ${error.message}`);
+    }
+  }
+
+  // Check if error is related to insufficient privileges
+  isPermissionError(errorMessage) {
+    const permissionErrors = [
+      'Access denied',
+      'you need (at least one of) the PROCESS privilege',
+      'Access denied for user',
+      'insufficient privileges',
+      'permission denied'
+    ];
+    
+    return permissionErrors.some(err => 
+      errorMessage.toLowerCase().includes(err.toLowerCase())
+    );
+  }
+
+  // Check user privileges and provide helpful information
+  async checkUserPrivileges() {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      
+      // Check current user
+      const [userResult] = await connection.execute('SELECT USER(), CURRENT_USER()');
+      console.log(`👤 Current user: ${userResult[0]['USER()']}`);
+      
+      // Check privileges for current database
+      const [privileges] = await connection.execute(`
+        SELECT 
+          TABLE_SCHEMA,
+          TABLE_NAME,
+          PRIVILEGE_TYPE
+        FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES 
+        WHERE GRANTEE = ? AND TABLE_SCHEMA = ?
+      `, [userResult[0]['CURRENT_USER()'], dbConfig.database]);
+      
+      console.log(`🔑 User privileges for ${dbConfig.database}:`);
+      if (privileges.length === 0) {
+        console.log('   ⚠️  No specific table privileges found');
+      } else {
+        const uniquePrivileges = [...new Set(privileges.map(p => p.PRIVILEGE_TYPE))];
+        console.log(`   ✅ Privileges: ${uniquePrivileges.join(', ')}`);
+      }
+      
+      await connection.end();
+      
+      // Provide helpful information about fixing privileges
+      console.log('\n💡 To fix mysqldump permission issues, run as root:');
+      console.log(`   GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON ${dbConfig.database}.* TO '${dbConfig.user}'@'${dbConfig.host || 'localhost'}';`);
+      console.log(`   FLUSH PRIVILEGES;`);
+      console.log('\n🔒 For production, consider creating a dedicated backup user with minimal privileges');
+      
+    } catch (error) {
+      console.warn(`⚠️  Could not check user privileges: ${error.message}`);
     }
   }
 
@@ -346,10 +411,27 @@ class DatabaseBackup {
       
       // Try mysqldump first, fallback to Node.js
       let backupFile;
-      if (await this.checkMysqldump()) {
-        backupFile = await this.backupWithMysqldump();
+      if (!backupConfig.skipMysqldump && await this.checkMysqldump()) {
+        try {
+          backupFile = await this.backupWithMysqldump();
+        } catch (error) {
+          if (error.message === 'PERMISSION_DENIED') {
+            console.log('🔄 mysqldump failed due to privileges, using Node.js fallback');
+            if (!backupConfig.skipPrivilegeCheck) {
+              console.log('📋 Checking user privileges for troubleshooting...');
+              await this.checkUserPrivileges();
+            }
+            backupFile = await this.backupWithNodeJS();
+          } else {
+            throw error;
+          }
+        }
       } else {
-        console.log('⚠️  mysqldump not available, using Node.js fallback');
+        if (backupConfig.skipMysqldump) {
+          console.log('🔄 Skipping mysqldump, using Node.js method directly');
+        } else {
+          console.log('⚠️  mysqldump not available, using Node.js fallback');
+        }
         backupFile = await this.backupWithNodeJS();
       }
       
@@ -397,12 +479,15 @@ Options:
   --data-only         Backup only data (no schema)
   --no-compress       Don't compress backup files
   --retention-days N  Set retention period in days (default: 30)
+  --nodejs-only       Skip mysqldump and use Node.js method directly
+  --skip-privilege-check Skip checking user privileges
 
 Examples:
   node backup_database.js
   node backup_database.js --schema-only
   node backup_database.js --no-compress
   node backup_database.js --retention-days 7
+  node backup_database.js --nodejs-only
 
 Environment Variables:
   DB_HOST             Database host (default: localhost)
@@ -425,6 +510,12 @@ Environment Variables:
   }
   if (args.includes('--no-compress')) {
     backupConfig.compressBackups = false;
+  }
+  if (args.includes('--nodejs-only')) {
+    backupConfig.skipMysqldump = true;
+  }
+  if (args.includes('--skip-privilege-check')) {
+    backupConfig.skipPrivilegeCheck = true;
   }
   
   const retentionIndex = args.indexOf('--retention-days');

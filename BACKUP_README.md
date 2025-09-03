@@ -45,6 +45,13 @@ node backup_database.js --no-compress
 
 # Custom retention period
 node backup_database.js --retention-days 7
+
+#### Via npm scripts:
+```bash
+npm run backup          # Full backup
+npm run backup:schema   # Schema only
+npm run backup:data     # Data only
+npm run backup:nodejs   # Skip mysqldump, use Node.js directly
 ```
 
 ## 📁 Files Overview
@@ -81,6 +88,8 @@ BACKUP_RETENTION_DAYS=30
 | `--data-only` | Backup only data | false |
 | `--no-compress` | Don't compress backup files | false |
 | `--retention-days N` | Set retention period in days | 30 |
+| `--nodejs-only` | Skip mysqldump and use Node.js method directly | false |
+| `--skip-privilege-check` | Skip checking user privileges | false |
 
 ## 🔧 How It Works
 
@@ -165,12 +174,32 @@ brew install mysql-client
 
 #### 2. "Access denied" errors
 **Solution:** Check database credentials and permissions
-```sql
--- Verify user permissions
-SHOW GRANTS FOR 'your_user'@'your_host';
 
--- Grant backup permissions if needed
-GRANT SELECT, SHOW VIEW, LOCK TABLES ON martyrs_archive.* TO 'your_user'@'your_host';
+**Quick Fix:** Use the Node.js fallback method
+```bash
+# Skip mysqldump entirely
+npm run backup:nodejs
+
+# Or use command line
+node backup_database.js --nodejs-only
+```
+
+**Fix Permissions (requires root access):**
+```sql
+-- Run as root/administrator
+GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON martyrs_archive.* TO 'api'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+**Or use the provided SQL script:**
+```bash
+# Run as root
+mysql -u root -p < fix_backup_privileges.sql
+```
+
+**Verify permissions:**
+```sql
+SHOW GRANTS FOR 'your_user'@'your_host';
 ```
 
 #### 3. "Connection refused"
