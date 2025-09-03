@@ -2,9 +2,12 @@
 
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
+const zlib = require('zlib');
+const { promisify: utilPromisify } = require('util');
 
 const execAsync = promisify(exec);
 
@@ -56,35 +59,96 @@ class DatabaseBackup {
   async backupWithMysqldump() {
     const { host, user, password, database, port } = dbConfig;
     
-    let mysqldumpCommand = 'mysqldump';
+    // Build mysqldump command as an array to avoid shell interpretation issues
+    const mysqldumpArgs = ['mysqldump'];
     
     // Add connection options
     if (host && host !== 'localhost') {
-      mysqldumpCommand += ` -h ${host}`;
+      mysqldumpArgs.push('-h', host);
     }
     if (port && port !== 3306) {
-      mysqldumpCommand += ` -P ${port}`;
+      mysqldumpArgs.push('-P', port.toString());
     }
     if (user) {
-      mysqldumpCommand += ` -u ${user}`;
+      mysqldumpArgs.push('-u', user);
     }
     if (password) {
-      mysqldumpCommand += ` -p${password}`;
+      mysqldumpArgs.push('-p' + password);
     }
 
     // Add database options
-    mysqldumpCommand += ` --single-transaction --routines --triggers --events`;
-    mysqldumpCommand += ` --add-drop-database --add-drop-table`;
-    mysqldumpCommand += ` --default-character-set=utf8mb4`;
+    mysqldumpArgs.push(
+      '--single-transaction',
+      '--routines',
+      '--triggers',
+      '--events',
+      '--add-drop-database',
+      '--add-drop-table',
+      '--default-character-set=utf8mb4'
+    );
+    
+    // Add database name
+    mysqldumpArgs.push(database);
     
     // Add output file
     const outputFile = path.join(this.backupDir, `${database}_backup.sql`);
-    mysqldumpCommand += ` ${database} > "${outputFile}"`;
-
+    
     console.log('🔄 Creating backup with mysqldump...');
+    console.log(`Command: mysqldump [options] ${database} > ${outputFile}`);
     
     try {
-      await execAsync(mysqldumpCommand);
+      // Use spawn instead of exec to avoid shell interpretation
+      const { spawn } = require('child_process');
+      const mysqldump = spawn('mysqldump', mysqldumpArgs, {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      // Create write stream for output file
+      const writeStream = fsSync.createWriteStream(outputFile);
+      
+      // Pipe mysqldump output to file
+      mysqldump.stdout.pipe(writeStream);
+      
+      // Handle errors and output
+      let stderrData = '';
+      mysqldump.stderr.on('data', (data) => {
+        stderrData += data.toString();
+        console.warn(`mysqldump stderr: ${data.toString().trim()}`);
+      });
+      
+      // Wait for completion with timeout
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          mysqldump.kill();
+          writeStream.end();
+          reject(new Error('mysqldump timed out after 5 minutes'));
+        }, 5 * 60 * 1000); // 5 minutes timeout
+        
+        mysqldump.on('close', (code) => {
+          clearTimeout(timeout);
+          writeStream.end();
+          if (code === 0) {
+            resolve();
+          } else {
+            const errorMsg = stderrData ? `: ${stderrData.trim()}` : '';
+            reject(new Error(`mysqldump exited with code ${code}${errorMsg}`));
+          }
+        });
+        
+        mysqldump.on('error', (error) => {
+          clearTimeout(timeout);
+          writeStream.end();
+          reject(error);
+        });
+        
+        // Handle write stream errors
+        writeStream.on('error', (error) => {
+          clearTimeout(timeout);
+          mysqldump.kill();
+          reject(error);
+        });
+      });
+      
       console.log(`✅ Backup created successfully: ${outputFile}`);
       
       if (backupConfig.compressBackups) {
@@ -188,9 +252,50 @@ class DatabaseBackup {
   async compressFile(filePath) {
     try {
       const compressedPath = `${filePath}.gz`;
-      await execAsync(`gzip "${filePath}"`);
-      console.log(`✅ File compressed: ${compressedPath}`);
-      return compressedPath;
+      
+      // Check if gzip is available
+      try {
+        await execAsync('gzip --version');
+        
+        // Use spawn for compression to avoid shell interpretation issues
+        const gzip = spawn('gzip', [filePath], {
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+        
+        await new Promise((resolve, reject) => {
+          gzip.on('close', (code) => {
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error(`gzip exited with code ${code}`));
+            }
+          });
+          
+          gzip.on('error', (error) => {
+            reject(error);
+          });
+        });
+        
+        console.log(`✅ File compressed with gzip: ${compressedPath}`);
+        return compressedPath;
+      } catch (error) {
+        // Fallback to Node.js zlib compression
+        console.log('⚠️  gzip not available, using Node.js compression...');
+        
+        const gzip = utilPromisify(zlib.gzip);
+        const readFile = utilPromisify(fsSync.readFile);
+        
+        const fileContent = await readFile(filePath);
+        const compressedContent = await gzip(fileContent);
+        
+        await fs.writeFile(compressedPath, compressedContent);
+        
+        // Remove original file
+        await fs.unlink(filePath);
+        
+        console.log(`✅ File compressed with Node.js zlib: ${compressedPath}`);
+        return compressedPath;
+      }
     } catch (error) {
       console.warn(`⚠️  Compression failed: ${error.message}`);
       return filePath;
