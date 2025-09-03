@@ -17,9 +17,10 @@ const config = {
 async function migratePreserveData() {
   try {
     console.log('🚀 Starting database migration with data preservation...');
+    console.log(`📊 Target database: ${config.database}`);
     
-    // Step 1: Export current data
-    console.log('📤 Exporting current data...');
+    // Step 1: Export current data from old database
+    console.log('📤 Exporting current data from existing database...');
     
     // Create export SQL file
     const exportSQL = `
@@ -36,7 +37,7 @@ SELECT
     QUOTE(name_ar), ', ', 
     QUOTE(name_en), ', ', 
     QUOTE(date_of_martyrdom), ', ', 
-    QUOTE(place_of_martyrdom), ', ',
+    QUOTE(place_of_martyrdom), ',',
     QUOTE(COALESCE(education_level, education)), ', ',
     IFNULL(QUOTE(university_name), 'NULL'), ', ',
     IFNULL(QUOTE(faculty), 'NULL'), ', ',
@@ -174,19 +175,36 @@ SELECT COUNT(*) as total_stats FROM statistics;
     // Clean up export file
     fs.unlinkSync(exportFile);
     
-    // Step 2: Create the migration SQL file
+    // Step 2: Drop old database and recreate it
+    console.log('🗑️  Dropping and recreating database...');
+    
+    // Drop old database if it exists
+    const dropCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "DROP DATABASE IF EXISTS \`${config.database}\`;"`;
+    
+    try {
+      await execAsync(dropCommand);
+      console.log(`   ✅ Database '${config.database}' dropped successfully`);
+    } catch (error) {
+      console.log('   ℹ️  Could not drop database (may not exist)');
+    }
+    
+    // Create new database with same name
+    const createCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "CREATE DATABASE \`${config.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"`;
+    
+    try {
+      await execAsync(createCommand);
+      console.log(`   ✅ Database '${config.database}' recreated successfully`);
+    } catch (error) {
+      throw new Error(`Failed to recreate database: ${error.message}`);
+    }
+    
+    // Step 3: Create the migration SQL file with the new schema
     console.log('📝 Creating migration SQL file...');
     const migrationSQL = `
--- Final Martyrs Archive Database Schema
--- This script will completely recreate the database
+-- Final Martyrs Archive Database Schema v2
+-- This script will completely recreate the database with the latest schema
 
--- Drop and recreate database
-DROP DATABASE IF EXISTS martyrs_archive;
-CREATE DATABASE martyrs_archive
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE martyrs_archive;
+USE \`${config.database}\`;
 
 -- Create updated martyrs table with final structure
 CREATE TABLE martyrs (
@@ -294,14 +312,67 @@ VALUES (
     'super_admin',
     TRUE
 );
+
+-- Insert sample martyrs for Sudan
+INSERT INTO martyrs (
+  name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+  education_level, university_name, faculty, department,
+  occupation, bio, image_url, status, approved
+) VALUES
+('محمد أحمد علي', 'Mohamed Ahmed Ali', '2024-01-15', 
+ '{"state": "الخرطوم", "location": "الخرطوم بحري"}', 
+ 'جامعي', 'جامعة الخرطوم', 'الهندسة', 'مدني',
+ 'مهندس مدني', 'كان مثالاً للشجاعة والتفاني في خدمة الوطن. عمل على مشاريع البنية التحتية المهمة.', NULL, 'approved', TRUE),
+
+('فاطمة محمد حسن', 'Fatima Mohamed Hassan', '2024-02-20', 
+ '{"state": "الخرطوم", "location": "أم درمان"}', 
+ 'خريج', 'جامعة السودان', 'الطب', 'طب عام',
+ 'طبيبة', 'كرست حياتها لعلاج المرضى ومساعدة المحتاجين. كانت مثالاً للرحمة والإنسانية.', NULL, 'approved', TRUE),
+
+('أحمد عمر محمد', 'Ahmed Omar Mohamed', '2024-03-10', 
+ '{"state": "الخرطوم", "location": "الخرطوم"}', 
+ 'مدرسة', NULL, NULL, NULL,
+ 'طالب', 'كان طالباً مجتهداً يحلم بمستقبل أفضل لبلاده. كان مثالاً للشباب الواعي.', NULL, 'approved', TRUE),
+
+('سارة عبد الرحمن', 'Sara Abdel Rahman', '2024-04-05', 
+ '{"state": "الخرطوم", "location": "الخرطوم شمال"}', 
+ 'جامعي', 'جامعة النيلين', 'العلوم', 'كيمياء',
+ 'باحثة', 'عملت في مجال البحث العلمي وساهمت في تطوير العلوم في السودان.', NULL, 'approved', TRUE),
+
+('علي حسن محمد', 'Ali Hassan Mohamed', '2024-05-12', 
+ '{"state": "الخرطوم", "location": "الخرطوم شرق"}', 
+ 'خريج', 'جامعة الخرطوم', 'الاقتصاد', 'إدارة أعمال',
+ 'محاسب', 'كان محاسباً أميناً ساهم في تطوير القطاع المالي في السودان.', NULL, 'approved', TRUE);
+
+-- Insert sample tributes
+INSERT INTO tributes (martyr_id, visitor_name, message, is_approved, ip_address) VALUES
+(1, 'أحمد', 'كان أخاً عزيزاً وصديقاً وفياً. سنفتقده كثيراً.', TRUE, '192.168.1.1'),
+(1, 'مريم', 'كان مثالاً للشجاعة والتفاني. رحمه الله.', TRUE, '192.168.1.2'),
+(2, 'د. حسن', 'كانت طبيبة ممتازة وكرست حياتها لخدمة المرضى.', TRUE, '192.168.1.3'),
+(3, 'زميل الدراسة', 'كان طالباً مجتهداً ومثالاً للشباب الواعي.', TRUE, '192.168.1.4'),
+(4, 'زميل العمل', 'كانت باحثة ممتازة وساهمت في تطوير العلوم.', TRUE, '192.168.1.5');
+
+-- Insert sample statistics
+INSERT INTO statistics (stat_type, stat_value) VALUES
+('total_martyrs', '{"count": 5, "last_updated": "2024-01-01T00:00:00Z"}'),
+('martyrs_by_education', '{"خريج": 2, "جامعي": 2, "مدرسة": 1, "last_updated": "2024-01-01T00:00:00Z"}'),
+('martyrs_by_location', '{"الخرطوم": 5, "last_updated": "2024-01-01T00:00:00Z"}'),
+('total_tributes', '{"count": 5, "approved": 5, "pending": 0, "last_updated": "2024-01-01T00:00:00Z"}');
+
+-- Display initialization summary
+SELECT 'Database initialization completed successfully!' as status;
+SELECT COUNT(*) as total_martyrs FROM martyrs;
+SELECT COUNT(*) as total_tributes FROM tributes;
+SELECT COUNT(*) as total_admins FROM admins;
+SELECT status, COUNT(*) as count FROM martyrs GROUP BY status;
 `;
 
     const tempFile = path.join(__dirname, 'temp_migration.sql');
     fs.writeFileSync(tempFile, migrationSQL);
     console.log('   ✅ Migration SQL file created');
     
-    // Step 3: Execute the migration
-    console.log('🗑️  Dropping and recreating database...');
+    // Step 4: Execute the migration
+    console.log('🔨 Executing migration...');
     const mysqlCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} < "${tempFile}"`;
     
     const { stdout, stderr } = await execAsync(mysqlCommand);
@@ -317,13 +388,13 @@ VALUES (
     // Clean up migration file
     fs.unlinkSync(tempFile);
     
-    // Step 4: Restore data if it existed
+    // Step 5: Restore data if it existed
     if (dataExists) {
       console.log('\n📥 Restoring data...');
       
       const restoreFile = path.join(__dirname, 'restore_data.sql');
       if (fs.existsSync(restoreFile)) {
-        const restoreCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} martyrs_archive < "${restoreFile}"`;
+        const restoreCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} \`${config.database}\` < "${restoreFile}"`;
         
         try {
           const { stdout: restoreOutput, stderr: restoreError } = await execAsync(restoreCommand);
@@ -347,9 +418,9 @@ VALUES (
       }
     }
     
-    // Step 5: Verification
+    // Step 6: Verification
     console.log('\n🔍 Verifying migration...');
-    const verifyCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "USE martyrs_archive; SELECT COUNT(*) as total_martyrs FROM martyrs; SELECT COUNT(*) as total_tributes FROM tributes; SELECT COUNT(*) as total_admins FROM admins;"`;
+    const verifyCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "USE \`${config.database}\`; SELECT COUNT(*) as total_martyrs FROM martyrs; SELECT COUNT(*) as total_tributes FROM tributes; SELECT COUNT(*) as total_admins FROM admins;"`;
     
     try {
       const { stdout: verifyOutput } = await execAsync(verifyCommand);
@@ -360,8 +431,9 @@ VALUES (
     }
     
     console.log('\n🎉 Database migration completed successfully!');
+    console.log(`📊 Database: ${config.database}`);
     console.log('\n📋 Next steps:');
-    console.log('   1. Test your application with the new database');
+    console.log('   1. Test your application with the recreated database');
     console.log('   2. Run cleanup script: node cleanup_migrations.js');
     console.log('   3. Verify all API endpoints work correctly');
     
@@ -370,6 +442,8 @@ VALUES (
     } else {
       console.log('\nℹ️  No existing data was found, database created with sample data only');
     }
+    
+
     
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
