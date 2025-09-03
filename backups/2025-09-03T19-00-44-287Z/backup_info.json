@@ -1,0 +1,15 @@
+{
+  "database": "martyrs_archive",
+  "timestamp": "2025-09-03T19-00-44-287Z",
+  "backupFile": "martyrs_archive_backup.sql.gz",
+  "fileSize": 3754,
+  "config": {
+    "backupPath": "./backups",
+    "retentionDays": 30,
+    "compressBackups": true,
+    "includeSchema": true,
+    "includeData": true,
+    "skipMysqldump": false,
+    "skipPrivilegeCheck": false
+  }
+}
