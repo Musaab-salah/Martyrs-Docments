@@ -142,7 +142,7 @@ SELECT COUNT(*) as total_stats FROM statistics;
     fs.writeFileSync(exportFile, exportSQL);
     
     // Execute export to get data
-    const exportCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} < "${exportFile}"`;
+    const exportCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} < "${exportFile}"`;
     
     let exportOutput = '';
     let dataExists = false;
@@ -179,7 +179,7 @@ SELECT COUNT(*) as total_stats FROM statistics;
     console.log('🗑️  Dropping and recreating database...');
     
     // Drop old database if it exists
-    const dropCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "DROP DATABASE IF EXISTS \`${config.database}\`;"`;
+    const dropCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} -e "DROP DATABASE IF EXISTS \`${config.database}\`;"`;
     
     try {
       await execAsync(dropCommand);
@@ -189,7 +189,7 @@ SELECT COUNT(*) as total_stats FROM statistics;
     }
     
     // Create new database with same name
-    const createCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "CREATE DATABASE \`${config.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"`;
+    const createCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} -e "CREATE DATABASE \`${config.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"`;
     
     try {
       await execAsync(createCommand);
@@ -373,7 +373,7 @@ SELECT status, COUNT(*) as count FROM martyrs GROUP BY status;
     
     // Step 4: Execute the migration
     console.log('🔨 Executing migration...');
-    const mysqlCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} < "${tempFile}"`;
+    const mysqlCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} < "${tempFile}"`;
     
     const { stdout, stderr } = await execAsync(mysqlCommand);
     
@@ -394,7 +394,7 @@ SELECT status, COUNT(*) as count FROM martyrs GROUP BY status;
       
       const restoreFile = path.join(__dirname, 'restore_data.sql');
       if (fs.existsSync(restoreFile)) {
-        const restoreCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} \`${config.database}\` < "${restoreFile}"`;
+        const restoreCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} \`${config.database}\` < "${restoreFile}"`;
         
         try {
           const { stdout: restoreOutput, stderr: restoreError } = await execAsync(restoreCommand);
@@ -420,7 +420,7 @@ SELECT status, COUNT(*) as count FROM martyrs GROUP BY status;
     
     // Step 6: Verification
     console.log('\n🔍 Verifying migration...');
-    const verifyCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p${config.password}` : ''} -e "USE \`${config.database}\`; SELECT COUNT(*) as total_martyrs FROM martyrs; SELECT COUNT(*) as total_tributes FROM tributes; SELECT COUNT(*) as total_admins FROM admins;"`;
+    const verifyCommand = `mysql -h ${config.host} -u ${config.user} ${config.password ? `-p"${config.password}"` : ''} -e "USE \`${config.database}\`; SELECT COUNT(*) as total_martyrs FROM martyrs; SELECT COUNT(*) as total_tributes FROM tributes; SELECT COUNT(*) as total_admins FROM admins;"`;
     
     try {
       const { stdout: verifyOutput } = await execAsync(verifyCommand);
