@@ -217,9 +217,11 @@ class DatabaseBackup {
       
       // Provide helpful information about fixing privileges
       console.log('\n💡 To fix mysqldump permission issues, run as root:');
-      console.log(`   GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON ${dbConfig.database}.* TO '${dbConfig.user}'@'${dbConfig.host || 'localhost'}';`);
+      console.log(`   GRANT SELECT, SHOW VIEW, LOCK TABLES ON ${dbConfig.database}.* TO '${dbConfig.user}'@'${dbConfig.host || 'localhost'};`);
+      console.log(`   GRANT PROCESS ON *.* TO '${dbConfig.user}'@'${dbConfig.host || 'localhost'};`);
       console.log(`   FLUSH PRIVILEGES;`);
       console.log('\n🔒 For production, consider creating a dedicated backup user with minimal privileges');
+      console.log('   Note: PROCESS privilege is global and applies to all databases');
       
     } catch (error) {
       console.warn(`⚠️  Could not check user privileges: ${error.message}`);

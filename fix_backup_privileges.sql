@@ -5,10 +5,9 @@
 -- Replace 'martyrs_archive' with your actual database name
 
 -- Grant necessary privileges for mysqldump backup
-GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON martyrs_archive.* TO 'api'@'localhost';
-
--- If you want to grant privileges for all databases (be careful with this)
--- GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON *.* TO 'api'@'localhost';
+-- Note: PROCESS is a global privilege, others are database-specific
+GRANT SELECT, SHOW VIEW, LOCK TABLES ON martyrs_archive.* TO 'api'@'localhost';
+GRANT PROCESS ON *.* TO 'api'@'localhost';
 
 -- Grant additional privileges that might be needed
 GRANT EVENT ON martyrs_archive.* TO 'api'@'localhost';

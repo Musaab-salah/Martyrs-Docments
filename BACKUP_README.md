@@ -187,7 +187,8 @@ node backup_database.js --nodejs-only
 **Fix Permissions (requires root access):**
 ```sql
 -- Run as root/administrator
-GRANT SELECT, SHOW VIEW, LOCK TABLES, PROCESS ON martyrs_archive.* TO 'api'@'localhost';
+GRANT SELECT, SHOW VIEW, LOCK TABLES ON martyrs_archive.* TO 'api'@'localhost';
+GRANT PROCESS ON *.* TO 'api'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
