@@ -186,6 +186,16 @@ class DatabaseBackup {
     );
   }
 
+  // Helper method to check if file exists
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // Check user privileges and provide helpful information
   async checkUserPrivileges() {
     try {
@@ -233,9 +243,11 @@ class DatabaseBackup {
     
     try {
       const connection = await mysql.createConnection(dbConfig);
+      console.log('✅ Database connection established');
       
       // Get all tables
       const [tables] = await connection.execute('SHOW TABLES');
+      console.log(`📊 Found ${tables.length} tables to backup`);
       
       let backupContent = '';
       
@@ -250,30 +262,57 @@ class DatabaseBackup {
         console.log(`📋 Backing up table: ${tableName}`);
         
         if (backupConfig.includeSchema) {
-          backupContent += await this.getTableSchema(connection, tableName);
+          const schemaContent = await this.getTableSchema(connection, tableName);
+          backupContent += schemaContent;
+          console.log(`   ✅ Schema backed up for ${tableName}`);
         }
         
         if (backupConfig.includeData) {
-          backupContent += await this.getTableData(connection, tableName);
+          const dataContent = await this.getTableData(connection, tableName);
+          backupContent += dataContent;
+          console.log(`   ✅ Data backed up for ${tableName}`);
         }
         
         backupContent += '\n';
       }
       
       await connection.end();
+      console.log('✅ Database connection closed');
+      
+      // Ensure backup directory exists
+      if (!await this.fileExists(this.backupDir)) {
+        console.log(`📁 Creating backup directory: ${this.backupDir}`);
+        await this.createBackupDirectory();
+      }
       
       // Write backup file
       const outputFile = path.join(this.backupDir, `${dbConfig.database}_backup.sql`);
+      console.log(`📝 Writing backup to: ${outputFile}`);
+      
       await fs.writeFile(outputFile, backupContent, 'utf8');
       
-      console.log(`✅ Backup created successfully: ${outputFile}`);
+      // Verify file was written
+      if (await this.fileExists(outputFile)) {
+        const stats = await fs.stat(outputFile);
+        console.log(`✅ Backup file written successfully: ${stats.size} bytes`);
+      } else {
+        throw new Error('Backup file was not created after write operation');
+      }
       
       if (backupConfig.compressBackups) {
-        await this.compressFile(outputFile);
+        try {
+          const compressedFile = await this.compressFile(outputFile);
+          console.log(`✅ Compression completed: ${compressedFile}`);
+          return compressedFile;
+        } catch (compressionError) {
+          console.warn(`⚠️  Compression failed, returning uncompressed file: ${compressionError.message}`);
+          return outputFile;
+        }
       }
       
       return outputFile;
     } catch (error) {
+      console.error('❌ Node.js backup error details:', error);
       throw new Error(`Node.js backup failed: ${error.message}`);
     }
   }
@@ -282,9 +321,9 @@ class DatabaseBackup {
     const [createTable] = await connection.execute(`SHOW CREATE TABLE \`${tableName}\``);
     const createStatement = createTable[0]['Create Table'];
     
-    return `-- Table structure for table \`${tableName}\`\n`;
-    return `DROP TABLE IF EXISTS \`${tableName}\`;\n`;
-    return `${createStatement};\n\n`;
+    return `-- Table structure for table \`${tableName}\`\n` +
+           `DROP TABLE IF EXISTS \`${tableName}\`;\n` +
+           `${createStatement};\n\n`;
   }
 
   async getTableData(connection, tableName) {
@@ -439,6 +478,11 @@ class DatabaseBackup {
       
       // Cleanup old backups
       await this.cleanupOldBackups();
+      
+      // Verify backup file exists before creating info
+      if (!await this.fileExists(backupFile)) {
+        throw new Error(`Backup file was not created: ${backupFile}`);
+      }
       
       // Create backup info file
       const infoFile = path.join(this.backupDir, 'backup_info.json');
