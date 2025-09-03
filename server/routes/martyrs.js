@@ -20,25 +20,8 @@ router.get('/', catchAsync(async (req, res) => {
   
   const offset = (page - 1) * limit;
   
-  // Check if status column exists, otherwise fall back to approved field
-  let statusCondition = 'approved = TRUE';
-  try {
-    // Try to use the new status field first
-    const [columns] = await pool.execute(`
-      SELECT COLUMN_NAME 
-      FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'martyrs' AND COLUMN_NAME = 'status'
-    `, [process.env.DB_NAME || 'martyrs_archive']);
-    
-    if (columns.length > 0) {
-      statusCondition = 'status = "approved"';
-    }
-  } catch (error) {
-    // If there's an error checking columns, fall back to approved field
-    statusCondition = 'approved = TRUE';
-  }
-  
-  const whereConditions = [statusCondition]; // Only show approved martyrs
+  // Use status field for filtering
+  const whereConditions = ['status = "approved"']; // Only show approved martyrs
   const params = [];
 
   if (search) {
@@ -89,11 +72,11 @@ router.get('/', catchAsync(async (req, res) => {
 
 // GET /api/martyrs/stats/summary - Get summary statistics
 router.get('/stats/summary', catchAsync(async (req, res) => {
-  const [totalResult] = await pool.execute('SELECT COUNT(*) as total FROM martyrs WHERE approved = TRUE');
+  const [totalResult] = await pool.execute('SELECT COUNT(*) as total FROM martyrs WHERE status = "approved"');
   const [educationResult] = await pool.execute(`
     SELECT education_level, COUNT(*) as count 
     FROM martyrs 
-    WHERE approved = TRUE
+    WHERE status = "approved"
     GROUP BY education_level
   `);
   const [monthlyResult] = await pool.execute(`
@@ -101,7 +84,7 @@ router.get('/stats/summary', catchAsync(async (req, res) => {
       DATE_FORMAT(date_of_martyrdom, '%Y-%m') as month,
       COUNT(*) as count
     FROM martyrs 
-    WHERE approved = TRUE AND date_of_martyrdom >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    WHERE status = "approved" AND date_of_martyrdom >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
     GROUP BY DATE_FORMAT(date_of_martyrdom, '%Y-%m')
     ORDER BY month DESC
   `);
@@ -123,7 +106,7 @@ router.get('/:id', catchAsync(async (req, res) => {
            school_state, school_locality, spouse, children, occupation, bio, image_url, 
            created_at
     FROM martyrs 
-    WHERE id = ? AND approved = TRUE
+    WHERE id = ? AND status = "approved"
   `;
   
   const [martyrs] = await pool.execute(query, [id]);
@@ -134,8 +117,6 @@ router.get('/:id', catchAsync(async (req, res) => {
 
   res.json({ martyr: martyrs[0] });
 }));
-
-
 
 // POST /api/martyrs/public - Add a new martyr (public endpoint)
 router.post('/public', 
@@ -158,9 +139,7 @@ router.post('/public',
       spouse,
       children,
       occupation,
-      bio,
-      longitude,
-      latitude
+      bio
     } = req.body;
     
     // Handle image upload
@@ -180,8 +159,8 @@ router.post('/public',
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
         school_state, school_locality, spouse, children, occupation, bio, image_url, 
-        longitude, latitude, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+        status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', FALSE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -189,19 +168,17 @@ router.post('/public',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level, // Use education_level directly, don't convert
+      education_level,
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null, // Keep as string/text
+      children || null,
       occupation,
       bio || null,
-      image_url,
-      longitude || 0.00000000,
-      latitude || 0.00000000
+      image_url
     ]);
     
     // Get the inserted martyr
@@ -239,9 +216,7 @@ router.post('/',
       spouse,
       children,
       occupation,
-      bio,
-      longitude,
-      latitude
+      bio
     } = req.body;
 
     // Handle image upload
@@ -261,8 +236,8 @@ router.post('/',
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
         school_state, school_locality, spouse, children, occupation, bio, image_url, 
-        longitude, latitude, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+        status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', TRUE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -270,19 +245,17 @@ router.post('/',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level, // Use education_level directly, don't convert
+      education_level,
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null, // Keep as string/text
+      children || null,
       occupation,
       bio || null,
-      image_url,
-      longitude || 0.00000000,
-      latitude || 0.00000000
+      image_url
     ]);
     
     // Get the inserted martyr
@@ -328,9 +301,7 @@ router.put('/:id',
       spouse,
       children,
       occupation,
-      bio,
-      longitude,
-      latitude
+      bio
     } = req.body;
     
     // Handle image upload
@@ -357,7 +328,7 @@ router.put('/:id',
         name_ar = ?, name_en = ?, date_of_martyrdom = ?, place_of_martyrdom = ?,
         education_level = ?, university_name = ?, faculty = ?, department = ?,
         school_state = ?, school_locality = ?, spouse = ?, children = ?, 
-        occupation = ?, bio = ?, image_url = ?, longitude = ?, latitude = ?
+        occupation = ?, bio = ?, image_url = ?
       WHERE id = ?
     `;
     
@@ -366,19 +337,17 @@ router.put('/:id',
       name_en,
       date_of_martyrdom,
       parsedPlace,
-      education_level, // Use education_level directly, don't convert
+      education_level,
       university_name || null,
       faculty || null,
       department || null,
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null, // Keep as string/text
+      children || null,
       occupation,
       bio || null,
       image_url,
-      longitude || 0.00000000,
-      latitude || 0.00000000,
       id
     ]);
     
@@ -436,20 +405,6 @@ router.get('/admin/all',
   
   const offset = (page - 1) * limit;
 
-  // Check if status column exists
-  let hasStatusColumn = false;
-  try {
-    const [columns] = await pool.execute(`
-      SELECT COLUMN_NAME 
-      FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'martyrs' AND COLUMN_NAME = 'status'
-    `, [process.env.DB_NAME || 'martyrs_archive']);
-    
-    hasStatusColumn = columns.length > 0;
-  } catch (error) {
-    hasStatusColumn = false;
-  }
-
   // Build WHERE conditions
   const whereConditions = [];
   const params = [];
@@ -475,24 +430,8 @@ router.get('/admin/all',
   }
 
   if (approvalStatus) {
-    if (hasStatusColumn) {
-      // Use new status field
-      if (approvalStatus === 'pending') {
-        whereConditions.push('status = "pending"');
-      } else if (approvalStatus === 'approved') {
-        whereConditions.push('status = "approved"');
-      } else if (approvalStatus === 'rejected') {
-        whereConditions.push('status = "rejected"');
-      }
-    } else {
-      // Fall back to approved field
-      if (approvalStatus === 'pending') {
-        whereConditions.push('approved = FALSE');
-      } else if (approvalStatus === 'approved') {
-        whereConditions.push('approved = TRUE');
-      }
-      // Note: 'rejected' status is not available in old structure
-    }
+    whereConditions.push('status = ?');
+    params.push(approvalStatus);
   }
 
   const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
@@ -503,15 +442,10 @@ router.get('/admin/all',
   const total = countResult[0].total;
 
   // Get martyrs with pagination (admin view includes all fields)
-  const selectFields = hasStatusColumn 
-    ? `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
        education_level, university_name, faculty, department,
        school_state, school_locality, spouse, children, occupation, bio, image_url, 
-       approved, status, created_at, updated_at`
-    : `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
-       education_level, university_name, faculty, department,
-       school_state, school_locality, spouse, children, occupation, bio, image_url, 
-       approved, created_at, updated_at`;
+       approved, status, created_at, updated_at`;
 
   const query = `
     SELECT ${selectFields}
@@ -560,28 +494,12 @@ router.patch('/:id/approve',
   
   console.log('Existing martyr:', existing[0]);
   
-  // Check if status column exists
-  let hasStatusColumn = false;
-  try {
-    const [columns] = await pool.execute(`
-      SELECT COLUMN_NAME 
-      FROM INFORMATION_SCHEMA.COLUMNS 
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'martyrs' AND COLUMN_NAME = 'status'
-    `, [process.env.DB_NAME || 'martyrs_archive']);
-    
-    hasStatusColumn = columns.length > 0;
-    console.log('Status column exists:', hasStatusColumn);
-  } catch (error) {
-    console.error('Error checking status column:', error);
-    hasStatusColumn = false;
-  }
-  
   // Determine the new status
   let newStatus = 'pending';
   let newApproved = false;
   
-  if (hasStatusColumn && status) {
-    // If status column exists and status is provided directly, use it
+  if (status) {
+    // If status is provided directly, use it
     newStatus = status;
     newApproved = (status === 'approved');
   } else if (approved !== undefined) {
@@ -592,22 +510,11 @@ router.patch('/:id/approve',
   
   console.log('New status values:', { newStatus, newApproved });
   
-  // Update database based on available structure
-  if (hasStatusColumn) {
-    // Update both status and approved field for backward compatibility
-    console.log('Updating with status column');
-    await pool.execute(
-      'UPDATE martyrs SET status = ?, approved = ? WHERE id = ?', 
-      [newStatus, newApproved ? 1 : 0, id]
-    );
-  } else {
-    // Only update approved field (old structure)
-    console.log('Updating without status column');
-    await pool.execute(
-      'UPDATE martyrs SET approved = ? WHERE id = ?', 
-      [newApproved ? 1 : 0, id]
-    );
-  }
+  // Update both status and approved field for consistency
+  await pool.execute(
+    'UPDATE martyrs SET status = ?, approved = ? WHERE id = ?', 
+    [newStatus, newApproved ? 1 : 0, id]
+  );
   
   // Get the updated martyr
   const [updatedMartyr] = await pool.execute(

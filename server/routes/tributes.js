@@ -19,14 +19,14 @@ router.post('/', [
     const { martyr_id, visitor_name, message } = req.body;
     const ip_address = req.ip || req.connection.remoteAddress;
 
-    // Verify martyr exists
+    // Verify martyr exists and is approved
     const [martyrs] = await pool.execute(
-      'SELECT id FROM martyrs WHERE id = ?',
+      'SELECT id FROM martyrs WHERE id = ? AND status = "approved"',
       [martyr_id]
     );
 
     if (martyrs.length === 0) {
-      return res.status(404).json({ error: 'Martyr not found' });
+      return res.status(404).json({ error: 'Martyr not found or not approved' });
     }
 
     // Check for spam (same IP, same martyr, within 24 hours)
@@ -71,14 +71,14 @@ router.get('/martyr/:martyrId', [
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    // Verify martyr exists
+    // Verify martyr exists and is approved
     const [martyrs] = await pool.execute(
-      'SELECT id, name_ar, name_en FROM martyrs WHERE id = ?',
+      'SELECT id, name_ar, name_en FROM martyrs WHERE id = ? AND status = "approved"',
       [martyrId]
     );
 
     if (martyrs.length === 0) {
-      return res.status(404).json({ error: 'Martyr not found' });
+      return res.status(404).json({ error: 'Martyr not found or not approved' });
     }
 
     // Get total count of approved tributes
@@ -257,11 +257,12 @@ router.get('/stats', [authenticateToken, requireAdmin], async (req, res) => {
     const [topMartyrsResult] = await pool.execute(`
       SELECT 
         m.id,
-                      m.name_ar,
+        m.name_ar,
         m.place_of_martyrdom,
         COUNT(t.id) as tribute_count
       FROM martyrs m
       LEFT JOIN tributes t ON m.id = t.martyr_id AND t.is_approved = TRUE
+      WHERE m.status = "approved"
       GROUP BY m.id
       HAVING tribute_count > 0
       ORDER BY tribute_count DESC

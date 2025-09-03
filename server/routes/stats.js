@@ -7,7 +7,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 router.get('/overview', async (req, res) => {
   try {
     // Total martyrs
-    const [totalMartyrs] = await pool.execute('SELECT COUNT(*) as total FROM martyrs');
+    const [totalMartyrs] = await pool.execute('SELECT COUNT(*) as total FROM martyrs WHERE status = "approved"');
     
     // Martyrs by year
     const [martyrsByYear] = await pool.execute(`
@@ -15,6 +15,7 @@ router.get('/overview', async (req, res) => {
         YEAR(date_of_martyrdom) as year,
         COUNT(*) as count
       FROM martyrs 
+      WHERE status = "approved"
       GROUP BY YEAR(date_of_martyrdom)
       ORDER BY year DESC
     `);
@@ -25,39 +26,28 @@ router.get('/overview', async (req, res) => {
         place_of_martyrdom,
         COUNT(*) as count
       FROM martyrs 
+      WHERE status = "approved"
       GROUP BY place_of_martyrdom
       ORDER BY count DESC
       LIMIT 10
     `);
 
-    // Age distribution
-    const [ageDistribution] = await pool.execute(`
+    // Education distribution
+    const [educationDistribution] = await pool.execute(`
       SELECT 
-        CASE 
-          WHEN age < 18 THEN '0-17'
-          WHEN age BETWEEN 18 AND 30 THEN '18-30'
-          WHEN age BETWEEN 31 AND 50 THEN '31-50'
-          WHEN age > 50 THEN '51+'
-          ELSE 'Unknown'
-        END as age_group,
+        education_level,
         COUNT(*) as count
       FROM martyrs 
-      GROUP BY age_group
-      ORDER BY 
-        CASE age_group
-          WHEN '0-17' THEN 1
-          WHEN '18-30' THEN 2
-          WHEN '31-50' THEN 3
-          WHEN '51+' THEN 4
-          ELSE 5
-        END
+      WHERE status = "approved"
+      GROUP BY education_level
+      ORDER BY count DESC
     `);
 
     // Recent martyrs (last 30 days)
     const [recentMartyrs] = await pool.execute(`
       SELECT COUNT(*) as count
       FROM martyrs 
-      WHERE date_of_martyrdom >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+      WHERE status = "approved" AND date_of_martyrdom >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     `);
 
     // Total tributes
@@ -67,7 +57,7 @@ router.get('/overview', async (req, res) => {
       totalMartyrs: totalMartyrs[0].total,
       martyrsByYear,
       martyrsByCity,
-      ageDistribution,
+      educationDistribution,
       recentMartyrs: recentMartyrs[0].count,
       totalTributes: totalTributes[0].total
     });
@@ -82,6 +72,9 @@ router.get('/detailed', [authenticateToken, requireAdmin], async (req, res) => {
   try {
     // All overview stats plus additional admin-only data
     const [totalMartyrs] = await pool.execute('SELECT COUNT(*) as total FROM martyrs');
+    const [pendingMartyrs] = await pool.execute('SELECT COUNT(*) as pending FROM martyrs WHERE status = "pending"');
+    const [approvedMartyrs] = await pool.execute('SELECT COUNT(*) as approved FROM martyrs WHERE status = "approved"');
+    const [rejectedMartyrs] = await pool.execute('SELECT COUNT(*) as rejected FROM martyrs WHERE status = "rejected"');
     const [pendingTributes] = await pool.execute('SELECT COUNT(*) as pending FROM tributes WHERE is_approved = FALSE');
     const [totalTributes] = await pool.execute('SELECT COUNT(*) as total FROM tributes');
     const [totalAdmins] = await pool.execute('SELECT COUNT(*) as total FROM admins WHERE is_active = TRUE');
@@ -122,11 +115,11 @@ router.get('/detailed', [authenticateToken, requireAdmin], async (req, res) => {
     // Education and occupation statistics
     const [educationStats] = await pool.execute(`
       SELECT 
-        education,
+        education_level,
         COUNT(*) as count
       FROM martyrs 
-      WHERE education IS NOT NULL AND education != ''
-      GROUP BY education
+      WHERE education_level IS NOT NULL AND education_level != ''
+      GROUP BY education_level
       ORDER BY count DESC
       LIMIT 10
     `);
@@ -165,6 +158,9 @@ router.get('/detailed', [authenticateToken, requireAdmin], async (req, res) => {
     res.json({
       overview: {
         totalMartyrs: totalMartyrs[0].total,
+        pendingMartyrs: pendingMartyrs[0].pending,
+        approvedMartyrs: approvedMartyrs[0].approved,
+        rejectedMartyrs: rejectedMartyrs[0].rejected,
         pendingTributes: pendingTributes[0].pending,
         totalTributes: totalTributes[0].total,
         totalAdmins: totalAdmins[0].total
@@ -192,6 +188,7 @@ router.get('/map', async (req, res) => {
         MIN(date_of_martyrdom) as earliest_date,
         MAX(date_of_martyrdom) as latest_date
       FROM martyrs 
+      WHERE status = "approved"
       GROUP BY place_of_martyrdom
       ORDER BY count DESC
     `);
@@ -220,6 +217,8 @@ router.get('/export', [authenticateToken, requireAdmin], async (req, res) => {
           education_level,
           occupation,
           bio,
+          status,
+          approved,
           created_at,
           updated_at
         FROM martyrs 
@@ -243,8 +242,7 @@ router.get('/export', [authenticateToken, requireAdmin], async (req, res) => {
 // Get search analytics (Admin only)
 router.get('/search-analytics', [authenticateToken, requireAdmin], async (req, res) => {
   try {
-    // Most searched terms (if you implement search logging)
-    // For now, return popular names and locations
+    // Most popular names and locations
     const [popularNames] = await pool.execute(`
       SELECT 
         name_ar,

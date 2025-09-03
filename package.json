@@ -14,6 +14,9 @@
     "db:init": "node setup.js",
     "migrate": "node run-migration.js",
     "migrate:status": "node run-status-migration.js",
+    "backup": "node backup_database.js",
+    "backup:schema": "node backup_database.js --schema-only",
+    "backup:data": "node backup_database.js --data-only",
     "postinstall": "npm rebuild sharp"
   },
   "keywords": [
