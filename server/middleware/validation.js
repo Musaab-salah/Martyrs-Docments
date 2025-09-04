@@ -15,9 +15,28 @@ const martyrValidation = [
     .withMessage('Invalid date format'),
   body('place_of_martyrdom')
     .notEmpty()
-    .withMessage('Place of martyrdom is required'),
+    .withMessage('Place of martyrdom is required')
+    .custom((value) => {
+      try {
+        if (typeof value === 'string') {
+          const parsed = JSON.parse(value);
+          if (!parsed.state || !parsed.state.trim()) {
+            throw new Error('State is required in place of martyrdom');
+          }
+          return true;
+        } else if (typeof value === 'object') {
+          if (!value.state || !value.state.trim()) {
+            throw new Error('State is required in place of martyrdom');
+          }
+          return true;
+        }
+        throw new Error('Invalid place of martyrdom format');
+      } catch (error) {
+        throw new Error('Invalid place of martyrdom format');
+      }
+    }),
   body('education_level')
-    .isIn(['primary', 'secondary', 'university', 'postgraduate', 'other'])
+    .isIn(['خريج', 'جامعي', 'مدرسة'])
     .withMessage('Invalid education level'),
   body('occupation')
     .trim()
@@ -61,8 +80,16 @@ const martyrValidation = [
   body('children')
     .optional()
     .trim()
-    .isLength({ max: 500 })
-    .withMessage('Children information must not exceed 500 characters'),
+    .custom((value) => {
+      if (value === '' || value === null || value === undefined) {
+        return true; // Allow empty values
+      }
+      const num = parseInt(value, 10);
+      if (isNaN(num) || num < 0) {
+        throw new Error('Children must be a non-negative number');
+      }
+      return true;
+    }),
   body('longitude')
     .optional()
     .isFloat({ min: -180, max: 180 })

@@ -96,13 +96,25 @@ const MartyrsPage = () => {
           ) : (
             <div className="grid-responsive">
               {martyrs.map((martyr) => {
-                // Handle place_of_martyrdom - it could be a string or JSON
+                // Handle place_of_martyrdom - it's already an object from API
                 let placeData;
-                try {
-                  placeData = JSON.parse(martyr.place_of_martyrdom);
-                } catch (error) {
-                  // If it's not valid JSON, treat it as a simple string
-                  placeData = { state: martyr.place_of_martyrdom, area: '' };
+                if (typeof martyr.place_of_martyrdom === 'object' && martyr.place_of_martyrdom !== null) {
+                  // It's already an object, use it directly but map location to area
+                  placeData = {
+                    state: martyr.place_of_martyrdom.state || '',
+                    area: martyr.place_of_martyrdom.location || martyr.place_of_martyrdom.area || ''
+                  };
+                } else {
+                  // Fallback for string format
+                  try {
+                    const parsed = JSON.parse(martyr.place_of_martyrdom);
+                    placeData = {
+                      state: parsed.state || '',
+                      area: parsed.location || parsed.area || ''
+                    };
+                  } catch (error) {
+                    placeData = { state: martyr.place_of_martyrdom || '', area: '' };
+                  }
                 }
                 
                 return (

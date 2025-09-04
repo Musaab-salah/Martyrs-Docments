@@ -50,10 +50,8 @@ router.get('/', catchAsync(async (req, res) => {
   const totalItems = countResult[0].total;
 
   // Get martyrs with pagination
-  const [martyrs] = await pool.execute(
-    `SELECT * FROM martyrs WHERE ${whereClause} ORDER BY date_of_martyrdom DESC LIMIT ? OFFSET ?`,
-    [...params, parseInt(limit), offset]
-  );
+  const martyrQuery = `SELECT * FROM martyrs WHERE ${whereClause} ORDER BY date_of_martyrdom DESC LIMIT ${limit} OFFSET ${offset}`;
+  const [martyrs] = await pool.execute(martyrQuery, params);
 
   const totalPages = Math.ceil(totalItems / limit);
 
@@ -121,6 +119,13 @@ router.get('/:id', catchAsync(async (req, res) => {
 // POST /api/martyrs/public - Add a new martyr (public endpoint)
 router.post('/public', 
   upload.single('image'), 
+  (req, res, next) => {
+    console.log('🔧 DEBUG - Public martyr submission request:', {
+      body: req.body,
+      file: req.file ? req.file.filename : 'no file'
+    });
+    next();
+  },
   martyrValidation, 
   handleValidationErrors,
   handleUploadError,
@@ -154,6 +159,15 @@ router.post('/public',
       parsedPlace = JSON.stringify(place_of_martyrdom);
     }
     
+    // Convert children to integer or null
+    let childrenCount = null;
+    if (children && children.trim() !== '') {
+      childrenCount = parseInt(children, 10);
+      if (isNaN(childrenCount)) {
+        childrenCount = null;
+      }
+    }
+    
     const query = `
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
@@ -175,7 +189,7 @@ router.post('/public',
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      childrenCount,
       occupation,
       bio || null,
       image_url

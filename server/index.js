@@ -56,14 +56,12 @@ app.use('/api/', limiter);
 app.use(compression());
 
 // CORS configuration
+const corsOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://martyrs-gk348rnps-musaabsalaheldin-9472s-projects.vercel.app',
-        'https://martyrs-c1x43y1fs-musaabsalaheldin-9472s-projects.vercel.app',
-        'https://martyrs.vercel.app'
-      ] 
-    : ['http://localhost:3000'],
+  origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
