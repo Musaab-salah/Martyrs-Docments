@@ -60,19 +60,32 @@ async function setupDatabase() {
     // Now execute the rest of the schema (tables and data)
     console.log('📋 Creating tables and inserting data...');
     
-    // Remove database creation commands from SQL and split into statements
+    // Remove only the specific database creation commands, keep everything else
     const cleanedSql = sqlContent
-      .replace(/-- Drop and recreate database[\s\S]*?USE martyrs_archive;/i, '')
-      .replace(/DROP DATABASE IF EXISTS martyrs_archive;/gi, '')
-      .replace(/CREATE DATABASE martyrs_archive[\s\S]*?;/gi, '')
-      .replace(/USE martyrs_archive;/gi, '');
+      .replace(/-- Drop and recreate database\s*\n/i, '')
+      .replace(/DROP DATABASE IF EXISTS martyrs_archive;\s*/gi, '')
+      .replace(/CREATE DATABASE martyrs_archive\s+CHARACTER SET utf8mb4\s+COLLATE utf8mb4_unicode_ci;\s*/gi, '')
+      .replace(/USE martyrs_archive;\s*/gi, '');
     
     const statements = cleanedSql
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--') && !stmt.toUpperCase().startsWith('SELECT'));
+      .filter(stmt => {
+        const upperStmt = stmt.toUpperCase();
+        return stmt.length > 0 
+          && !stmt.startsWith('--') 
+          && !upperStmt.startsWith('SELECT \'DATABASE') // Keep INSERT selects but filter status messages
+          && stmt.length > 5; // Filter out very short statements
+      });
     
     console.log(`📝 Executing ${statements.length} SQL statements...`);
+    
+    if (statements.length === 0) {
+      console.log('⚠️  No statements found! Debugging SQL content...');
+      console.log('First 500 chars of cleaned SQL:', cleanedSql.substring(0, 500));
+      console.log('Original SQL length:', sqlContent.length);
+      console.log('Cleaned SQL length:', cleanedSql.length);
+    }
     
     for (let i = 0; i < statements.length; i++) {
       const statement = statements[i];
