@@ -29,14 +29,40 @@ async function setupDatabase() {
 
     console.log('✅ Connected to MySQL server');
 
-    // Split SQL into individual statements and execute them
+    // Handle database creation first
     console.log('🔄 Setting up database...');
     
-    // Split the SQL content into individual statements
-    const statements = sqlContent
+    try {
+      console.log('🗑️  Dropping existing database...');
+      await connection.execute('DROP DATABASE IF EXISTS martyrs_archive');
+      console.log('✅ Old database dropped');
+      
+      console.log('🏗️  Creating new database...');
+      await connection.execute(`CREATE DATABASE martyrs_archive CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      console.log('✅ New database created');
+      
+      console.log('🔗 Connecting to database...');
+      await connection.execute('USE martyrs_archive');
+      console.log('✅ Connected to database');
+    } catch (error) {
+      console.error('❌ Error setting up database:', error.message);
+      throw error;
+    }
+    
+    // Now execute the rest of the schema (tables and data)
+    console.log('📋 Creating tables and inserting data...');
+    
+    // Remove database creation commands from SQL and split into statements
+    const cleanedSql = sqlContent
+      .replace(/-- Drop and recreate database[\s\S]*?USE martyrs_archive;/i, '')
+      .replace(/DROP DATABASE IF EXISTS martyrs_archive;/gi, '')
+      .replace(/CREATE DATABASE martyrs_archive[\s\S]*?;/gi, '')
+      .replace(/USE martyrs_archive;/gi, '');
+    
+    const statements = cleanedSql
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--') && !stmt.startsWith('SELECT'));
+      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--') && !stmt.toUpperCase().startsWith('SELECT'));
     
     console.log(`📝 Executing ${statements.length} SQL statements...`);
     
@@ -45,18 +71,12 @@ async function setupDatabase() {
       if (statement) {
         try {
           await connection.execute(statement);
-          if (statement.toUpperCase().includes('DROP DATABASE')) {
-            console.log('🗑️  Old database dropped');
-          } else if (statement.toUpperCase().includes('CREATE DATABASE')) {
-            console.log('🏗️  New database created');
-          } else if (statement.toUpperCase().includes('USE ')) {
-            console.log('🔗 Connected to database');
-          } else if (statement.toUpperCase().includes('CREATE TABLE')) {
+          if (statement.toUpperCase().includes('CREATE TABLE')) {
             const tableName = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
             console.log(`📋 Created table: ${tableName ? tableName[1] : 'unknown'}`);
           } else if (statement.toUpperCase().includes('INSERT INTO')) {
             const tableName = statement.match(/INSERT INTO\s+(\w+)/i);
-            if (tableName && tableName[1] !== 'martyrs') { // Don't log every martyr insert
+            if (tableName && tableName[1] !== 'martyrs') {
               console.log(`📝 Inserted data into: ${tableName[1]}`);
             }
           }
