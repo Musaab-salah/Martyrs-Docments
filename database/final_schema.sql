@@ -16,7 +16,7 @@ CREATE TABLE martyrs (
   name_ar VARCHAR(255) NOT NULL COMMENT 'Name in Arabic',
   name_en VARCHAR(255) NOT NULL COMMENT 'Name in English',
   date_of_martyrdom DATE NOT NULL,
-  place_of_martyrdom JSON NOT NULL COMMENT '{"state": "الخرطوم", "location": "الخرطوم بحري"}',
+  place_of_martyrdom JSON NOT NULL COMMENT '{"state": "الخرطوم", "area": "الخرطوم بحري"}',
   education_level ENUM('خريج', 'جامعي', 'مدرسة') NOT NULL,
   university_name VARCHAR(255) NULL,
   faculty VARCHAR(255) NULL,
@@ -124,27 +124,27 @@ INSERT INTO martyrs (
   occupation, bio, image_url, status, approved
 ) VALUES
 ('محمد أحمد علي', 'Mohamed Ahmed Ali', '2024-01-15', 
- '{"state": "الخرطوم", "location": "الخرطوم بحري"}', 
+ '{"state": "الخرطوم", "area": "الخرطوم بحري"}', 
  'جامعي', 'جامعة الخرطوم', 'الهندسة', 'مدني',
  'مهندس مدني', 'كان مثالاً للشجاعة والتفاني في خدمة الوطن. عمل على مشاريع البنية التحتية المهمة.', NULL, 'approved', TRUE),
 
 ('فاطمة محمد حسن', 'Fatima Mohamed Hassan', '2024-02-20', 
- '{"state": "الخرطوم", "location": "أم درمان"}', 
+ '{"state": "الخرطوم", "area": "أم درمان"}', 
  'خريج', 'جامعة السودان', 'الطب', 'طب عام',
  'طبيبة', 'كرست حياتها لعلاج المرضى ومساعدة المحتاجين. كانت مثالاً للرحمة والإنسانية.', NULL, 'approved', TRUE),
 
 ('أحمد عمر محمد', 'Ahmed Omar Mohamed', '2024-03-10', 
- '{"state": "الخرطوم", "location": "الخرطوم"}', 
+ '{"state": "الخرطوم", "area": "الخرطوم"}', 
  'مدرسة', NULL, NULL, NULL,
  'طالب', 'كان طالباً مجتهداً يحلم بمستقبل أفضل لبلاده. كان مثالاً للشباب الواعي.', NULL, 'approved', TRUE),
 
 ('سارة عبد الرحمن', 'Sara Abdel Rahman', '2024-04-05', 
- '{"state": "الخرطوم", "location": "الخرطوم شمال"}', 
+ '{"state": "الخرطوم", "area": "الخرطوم شمال"}', 
  'جامعي', 'جامعة النيلين', 'العلوم', 'كيمياء',
  'باحثة', 'عملت في مجال البحث العلمي وساهمت في تطوير العلوم في السودان.', NULL, 'approved', TRUE),
 
 ('علي حسن محمد', 'Ali Hassan Mohamed', '2024-05-12', 
- '{"state": "الخرطوم", "location": "الخرطوم شرق"}', 
+ '{"state": "الخرطوم", "area": "الخرطوم شرق"}', 
  'خريج', 'جامعة الخرطوم', 'الاقتصاد', 'إدارة أعمال',
  'محاسب', 'كان محاسباً أميناً ساهم في تطوير القطاع المالي في السودان.', NULL, 'approved', TRUE);
 

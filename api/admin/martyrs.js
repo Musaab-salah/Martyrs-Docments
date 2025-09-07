@@ -74,8 +74,8 @@ module.exports = async (req, res) => {
 
       // Handle approved filter
       if (approved !== '') {
-        whereConditions.push('approved = ?');
-        params.push(approved === 'true' ? 1 : 0);
+        whereConditions.push('status = ?');
+        params.push(approved === 'true' ? 'approved' : 'pending');
       }
 
       if (search) {

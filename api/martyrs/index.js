@@ -106,8 +106,8 @@ module.exports = async (req, res) => {
         } = req.query;
 
         const offset = (page - 1) * limit;
-        const whereConditions = ['approved = ?'];
-        const params = [approved === 'true' ? 1 : 0];
+        const whereConditions = ['status = ?'];
+        const params = [approved === 'true' ? 'approved' : 'pending'];
 
         if (search) {
           whereConditions.push('(name_ar LIKE ? OR name_en LIKE ? OR bio LIKE ?)');
@@ -181,26 +181,42 @@ module.exports = async (req, res) => {
               photoPath = await processAndSaveImage(photo.buffer, filename);
             }
 
+            // Handle place_of_martyrdom as JSON
+            let parsedPlace = martyrData.place_of_martyrdom;
+            if (typeof martyrData.place_of_martyrdom === 'string') {
+              try {
+                parsedPlace = JSON.parse(martyrData.place_of_martyrdom);
+              } catch (e) {
+                parsedPlace = { state: martyrData.place_of_martyrdom, area: '' };
+              }
+            }
+
             // Insert martyr into database
             const [result] = await connection.execute(
               `INSERT INTO martyrs (
                 name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
-                age, education_level, occupation, bio, photo_path,
-                coordinates_lat, coordinates_lng, approved, created_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                education_level, university_name, faculty, department,
+                school_state, school_locality, spouse, children, 
+                occupation, bio, image_url, status, approved
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 martyrData.name_ar.trim(),
                 martyrData.name_en.trim(),
                 martyrData.date_of_martyrdom,
-                martyrData.place_of_martyrdom.trim(),
-                martyrData.age || null,
+                JSON.stringify(parsedPlace),
                 martyrData.education_level || null,
+                martyrData.university_name || null,
+                martyrData.faculty || null,
+                martyrData.department || null,
+                martyrData.school_state || null,
+                martyrData.school_locality || null,
+                martyrData.spouse || null,
+                martyrData.children ? parseInt(martyrData.children) : null,
                 martyrData.occupation || null,
                 martyrData.bio || null,
                 photoPath,
-                martyrData.coordinates_lat || null,
-                martyrData.coordinates_lng || null,
-                martyrData.approved === 'true' ? 1 : 0
+                'pending',
+                false
               ]
             );
 
