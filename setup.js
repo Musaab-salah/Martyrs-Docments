@@ -42,7 +42,15 @@ async function setupDatabase() {
       console.log('✅ New database created');
       
       console.log('🔗 Connecting to database...');
-      await connection.execute('USE martyrs_archive');
+      // Close the current connection and create a new one with the database
+      await connection.end();
+      connection = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        port: process.env.DB_PORT || 3306,
+        database: 'martyrs_archive'
+      });
       console.log('✅ Connected to database');
     } catch (error) {
       console.error('❌ Error setting up database:', error.message);
@@ -91,7 +99,6 @@ async function setupDatabase() {
     console.log('✅ Database setup completed successfully!');
 
     // Verify the setup
-    await connection.execute('USE martyrs_archive');
     const [martyrs] = await connection.execute('SELECT COUNT(*) as count FROM martyrs');
     const [admins] = await connection.execute('SELECT COUNT(*) as count FROM admins');
     
