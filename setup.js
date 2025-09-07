@@ -74,7 +74,7 @@ async function setupDatabase() {
         const upperStmt = stmt.toUpperCase();
         return stmt.length > 0 
           && !stmt.startsWith('--') 
-          && !upperStmt.startsWith('SELECT \'DATABASE') // Keep INSERT selects but filter status messages
+          && !upperStmt.startsWith('SELECT') // Filter out ALL SELECT statements (including verification ones)
           && stmt.length > 5; // Filter out very short statements
       });
     
