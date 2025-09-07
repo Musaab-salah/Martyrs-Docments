@@ -118,6 +118,27 @@ async function setupDatabase() {
     
     console.log('✅ Database setup completed successfully!');
 
+    // Create API user for application
+    console.log('👤 Setting up API user...');
+    try {
+      // Drop existing user if exists
+      await connection.execute("DROP USER IF EXISTS 'api'@'localhost'");
+      
+      // Create new API user
+      await connection.execute("CREATE USER 'api'@'localhost' IDENTIFIED BY 'Martyrs2024API@'");
+      
+      // Grant privileges to the API user
+      await connection.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON martyrs_archive.* TO 'api'@'localhost'");
+      
+      // Flush privileges to ensure changes take effect
+      await connection.execute("FLUSH PRIVILEGES");
+      
+      console.log('✅ API user created and granted privileges');
+    } catch (error) {
+      console.error('⚠️  Warning: Could not create API user:', error.message);
+      console.log('💡 The application may need to run with root user or manual user setup');
+    }
+
     // Verify the setup
     const [martyrs] = await connection.execute('SELECT COUNT(*) as count FROM martyrs');
     const [admins] = await connection.execute('SELECT COUNT(*) as count FROM admins');

@@ -71,10 +71,33 @@ The client can run with or without backend using `USE_MOCK_API` configuration. F
 
 ### Deployment Targets
 Multiple deployment configurations available:
-- **Vercel** - Primary serverless deployment (see `vercel.json`)
+- **Traditional Server** - Production deployment with systemd service and nginx
+- **Vercel** - Serverless deployment (see `vercel.json`)
 - **Railway** - Container deployment (see `railway.json`)
 - **Render** - Alternative hosting (see `render.yaml`)
 - **Heroku** - Traditional PaaS (see `Procfile`)
+
+### Production Deployment
+For traditional server deployment:
+
+#### System Services
+- **Backend Service**: `martyrs-archive.service` - systemd service running on port 5000
+- **Frontend**: Static files served by nginx from `/opt/Martyrs-Docments/client/build`
+- **Database**: MySQL with `api` user for application access
+
+#### Nginx Configuration
+- **Config Location**: `/nginx/martyrs-archive.conf` (tracked in repo)
+- **Features**: HTTP to HTTPS redirect, static file serving, API proxy, SPA routing
+- **SSL**: Currently using temporary self-signed certificates
+- **Deployment**: Copy config to `/etc/nginx/sites-available/` and enable
+
+#### Production Commands
+```bash
+npm run build                          # Build React app for production  
+sudo systemctl start martyrs-archive  # Start backend service
+sudo systemctl enable martyrs-archive # Enable on boot
+sudo nginx -t && sudo systemctl reload nginx  # Deploy nginx config
+```
 
 ## Security & API Design
 
