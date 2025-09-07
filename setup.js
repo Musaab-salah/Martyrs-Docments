@@ -24,15 +24,50 @@ async function setupDatabase() {
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      port: process.env.DB_PORT || 3306,
-      multipleStatements: true  // Allow multiple SQL statements
+      port: process.env.DB_PORT || 3306
     });
 
     console.log('✅ Connected to MySQL server');
 
-    // Execute the entire SQL file
+    // Split SQL into individual statements and execute them
     console.log('🔄 Setting up database...');
-    await connection.execute(sqlContent);
+    
+    // Split the SQL content into individual statements
+    const statements = sqlContent
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--') && !stmt.startsWith('SELECT'));
+    
+    console.log(`📝 Executing ${statements.length} SQL statements...`);
+    
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i];
+      if (statement) {
+        try {
+          await connection.execute(statement);
+          if (statement.toUpperCase().includes('DROP DATABASE')) {
+            console.log('🗑️  Old database dropped');
+          } else if (statement.toUpperCase().includes('CREATE DATABASE')) {
+            console.log('🏗️  New database created');
+          } else if (statement.toUpperCase().includes('USE ')) {
+            console.log('🔗 Connected to database');
+          } else if (statement.toUpperCase().includes('CREATE TABLE')) {
+            const tableName = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
+            console.log(`📋 Created table: ${tableName ? tableName[1] : 'unknown'}`);
+          } else if (statement.toUpperCase().includes('INSERT INTO')) {
+            const tableName = statement.match(/INSERT INTO\s+(\w+)/i);
+            if (tableName && tableName[1] !== 'martyrs') { // Don't log every martyr insert
+              console.log(`📝 Inserted data into: ${tableName[1]}`);
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error executing statement ${i + 1}:`, error.message);
+          console.error(`Statement: ${statement.substring(0, 100)}...`);
+          throw error;
+        }
+      }
+    }
+    
     console.log('✅ Database setup completed successfully!');
 
     // Verify the setup
