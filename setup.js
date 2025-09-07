@@ -81,10 +81,18 @@ async function setupDatabase() {
     console.log(`📝 Executing ${statements.length} SQL statements...`);
     
     if (statements.length === 0) {
-      console.log('⚠️  No statements found! Debugging SQL content...');
-      console.log('First 500 chars of cleaned SQL:', cleanedSql.substring(0, 500));
-      console.log('Original SQL length:', sqlContent.length);
-      console.log('Cleaned SQL length:', cleanedSql.length);
+      console.log('⚠️  No statements found! Debugging...');
+      const splitStatements = cleanedSql.split(';');
+      console.log(`Total split statements: ${splitStatements.length}`);
+      
+      // Check first few statements
+      for (let i = 0; i < Math.min(5, splitStatements.length); i++) {
+        const stmt = splitStatements[i].trim();
+        console.log(`Statement ${i + 1} (length ${stmt.length}):`, stmt.substring(0, 100));
+        console.log(`  - Starts with --?: ${stmt.startsWith('--')}`);
+        console.log(`  - Contains CREATE TABLE?: ${stmt.toUpperCase().includes('CREATE TABLE')}`);
+        console.log(`  - Contains INSERT INTO?: ${stmt.toUpperCase().includes('INSERT INTO')}`);
+      }
     }
     
     for (let i = 0; i < statements.length; i++) {
