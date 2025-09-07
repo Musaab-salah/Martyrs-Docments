@@ -11,15 +11,6 @@
     "install-all": "npm install && cd client && npm install",
     "start": "node server/index.js",
     "setup": "node setup.js",
-    "db:init": "node setup.js",
-    "db:reset": "mysql -u root -p < database/final_schema.sql",
-    "migrate": "node run-migration.js",
-    "migrate:status": "node run-status-migration.js",
-    "backup": "node backup_database.js",
-    "backup:schema": "node backup_database.js --schema-only",
-    "backup:data": "node backup_database.js --data-only",
-    "backup:nodejs": "node backup_database.js --nodejs-only",
-    "test:backup": "node test_backup.js",
     "postinstall": "npm rebuild sharp"
   },
   "keywords": [
