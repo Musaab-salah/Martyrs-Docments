@@ -69,13 +69,13 @@ async function setupDatabase() {
     
     const statements = cleanedSql
       .split(';')
-      .map(stmt => stmt.trim())
+      .map(stmt => stmt.trim().replace(/\s+/g, ' ')) // Normalize whitespace
       .filter(stmt => {
         const upperStmt = stmt.toUpperCase();
-        return stmt.length > 0 
+        return stmt.length > 10 // Minimum meaningful statement length
           && !stmt.startsWith('--') 
-          && !upperStmt.startsWith('SELECT') // Filter out ALL SELECT statements (including verification ones)
-          && stmt.length > 5; // Filter out very short statements
+          && !upperStmt.startsWith('SELECT') // Filter out SELECT statements
+          && (upperStmt.includes('CREATE TABLE') || upperStmt.includes('INSERT INTO')); // Only allow table creation and data insertion
       });
     
     console.log(`📝 Executing ${statements.length} SQL statements...`);
