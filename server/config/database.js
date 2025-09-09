@@ -73,7 +73,7 @@ const initializeDatabase = async () => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         full_name VARCHAR(255) NOT NULL,
         photo_url VARCHAR(500),
-        place_of_martyrdom VARCHAR(255) NOT NULL,
+        place_of_martyrdom JSON NOT NULL,
         date_of_martyrdom DATE NOT NULL,
         age INT,
         biography TEXT,

@@ -85,8 +85,8 @@ module.exports = async (req, res) => {
       }
 
       if (place) {
-        whereConditions.push('place_of_martyrdom LIKE ?');
-        params.push(`%${place}%`);
+        whereConditions.push('(place_of_martyrdom LIKE ? OR JSON_EXTRACT(place_of_martyrdom, "$.state") LIKE ? OR JSON_EXTRACT(place_of_martyrdom, "$.area") LIKE ?)');
+        params.push(`%${place}%`, `%${place}%`, `%${place}%`);
       }
 
       if (education) {

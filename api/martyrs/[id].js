@@ -73,8 +73,31 @@ function validateMartyrData(data) {
     errors.push('Date of martyrdom is required');
   }
   
-  if (!data.place_of_martyrdom || data.place_of_martyrdom.trim().length < 2) {
-    errors.push('Place of martyrdom is required and must be at least 2 characters');
+  // Validate place_of_martyrdom (can be JSON object or string)
+  if (!data.place_of_martyrdom) {
+    errors.push('Place of martyrdom is required');
+  } else {
+    let placeData = data.place_of_martyrdom;
+    
+    // If it's a string, try to parse as JSON
+    if (typeof data.place_of_martyrdom === 'string') {
+      try {
+        placeData = JSON.parse(data.place_of_martyrdom);
+      } catch (e) {
+        // If parsing fails, treat as simple string
+        if (data.place_of_martyrdom.trim().length < 2) {
+          errors.push('Place of martyrdom must be at least 2 characters');
+        }
+        return errors;
+      }
+    }
+    
+    // If it's an object, validate state field
+    if (typeof placeData === 'object' && placeData !== null) {
+      if (!placeData.state || placeData.state.trim().length < 2) {
+        errors.push('State in place of martyrdom is required and must be at least 2 characters');
+      }
+    }
   }
   
   return errors;

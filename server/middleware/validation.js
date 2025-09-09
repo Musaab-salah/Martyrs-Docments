@@ -19,20 +19,28 @@ const martyrValidation = [
     .custom((value) => {
       try {
         if (typeof value === 'string') {
-          const parsed = JSON.parse(value);
-          if (!parsed.state || !parsed.state.trim()) {
-            throw new Error('State is required in place of martyrdom');
+          try {
+            const parsed = JSON.parse(value);
+            if (!parsed.state || !parsed.state.trim()) {
+              throw new Error('State is required in place of martyrdom');
+            }
+            return true;
+          } catch (jsonError) {
+            // If not valid JSON, treat as simple string
+            if (value.trim().length < 2) {
+              throw new Error('Place of martyrdom must be at least 2 characters');
+            }
+            return true;
           }
-          return true;
-        } else if (typeof value === 'object') {
+        } else if (typeof value === 'object' && value !== null) {
           if (!value.state || !value.state.trim()) {
             throw new Error('State is required in place of martyrdom');
           }
           return true;
         }
-        throw new Error('Invalid place of martyrdom format');
+        throw new Error('Place of martyrdom must be a string or object with state field');
       } catch (error) {
-        throw new Error('Invalid place of martyrdom format');
+        throw new Error(error.message || 'Invalid place of martyrdom format');
       }
     }),
   body('education_level')

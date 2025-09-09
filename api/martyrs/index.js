@@ -56,6 +56,41 @@ async function processAndSaveImage(buffer, filename) {
   }
 }
 
+// Helper function to normalize place_of_martyrdom data
+function normalizePlaceOfMartyrdom(placeData) {
+  if (!placeData) {
+    return null;
+  }
+  
+  // If it's already a string, try to parse as JSON
+  if (typeof placeData === 'string') {
+    try {
+      const parsed = JSON.parse(placeData);
+      // If parsing succeeds and it's a valid object, return the original string
+      if (typeof parsed === 'object' && parsed !== null && parsed.state) {
+        return placeData;
+      }
+    } catch (e) {
+      // If parsing fails, treat as simple string and wrap it
+      if (placeData.trim().length >= 2) {
+        return JSON.stringify({ state: placeData.trim(), area: '' });
+      }
+    }
+  }
+  
+  // If it's an object, convert to JSON string
+  if (typeof placeData === 'object' && placeData !== null) {
+    if (placeData.state && placeData.state.trim().length >= 2) {
+      return JSON.stringify({
+        state: placeData.state.trim(),
+        area: (placeData.area || '').trim()
+      });
+    }
+  }
+  
+  return null;
+}
+
 // Helper function to validate martyr data
 function validateMartyrData(data) {
   const errors = [];
@@ -72,8 +107,14 @@ function validateMartyrData(data) {
     errors.push('Date of martyrdom is required');
   }
   
-  if (!data.place_of_martyrdom || data.place_of_martyrdom.trim().length < 2) {
-    errors.push('Place of martyrdom is required and must be at least 2 characters');
+  // Validate place_of_martyrdom using the normalize function
+  if (!data.place_of_martyrdom) {
+    errors.push('Place of martyrdom is required');
+  } else {
+    const normalizedPlace = normalizePlaceOfMartyrdom(data.place_of_martyrdom);
+    if (!normalizedPlace) {
+      errors.push('Place of martyrdom must have a valid state field with at least 2 characters');
+    }
   }
   
   return errors;
@@ -181,14 +222,10 @@ module.exports = async (req, res) => {
               photoPath = await processAndSaveImage(photo.buffer, filename);
             }
 
-            // Handle place_of_martyrdom as JSON
-            let parsedPlace = martyrData.place_of_martyrdom;
-            if (typeof martyrData.place_of_martyrdom === 'string') {
-              try {
-                parsedPlace = JSON.parse(martyrData.place_of_martyrdom);
-              } catch (e) {
-                parsedPlace = { state: martyrData.place_of_martyrdom, area: '' };
-              }
+            // Handle place_of_martyrdom using normalize function
+            const normalizedPlace = normalizePlaceOfMartyrdom(martyrData.place_of_martyrdom);
+            if (!normalizedPlace) {
+              return res.status(400).json({ error: 'Invalid place of martyrdom format' });
             }
 
             // Insert martyr into database
@@ -203,7 +240,7 @@ module.exports = async (req, res) => {
                 martyrData.name_ar.trim(),
                 martyrData.name_en.trim(),
                 martyrData.date_of_martyrdom,
-                JSON.stringify(parsedPlace),
+                normalizedPlace,
                 martyrData.education_level || null,
                 martyrData.university_name || null,
                 martyrData.faculty || null,

@@ -10,6 +10,41 @@ const { martyrValidation, handleValidationErrors } = require('../middleware/vali
 const { catchAsync, handleDatabaseError, handleFileError } = require('../utils/errorHandler');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
+// Helper function to normalize place_of_martyrdom data
+function normalizePlaceOfMartyrdom(placeData) {
+  if (!placeData) {
+    return null;
+  }
+  
+  // If it's already a string, try to parse as JSON
+  if (typeof placeData === 'string') {
+    try {
+      const parsed = JSON.parse(placeData);
+      // If parsing succeeds and it's a valid object, return the original string
+      if (typeof parsed === 'object' && parsed !== null && parsed.state) {
+        return placeData;
+      }
+    } catch (e) {
+      // If parsing fails, treat as simple string and wrap it
+      if (placeData.trim().length >= 2) {
+        return JSON.stringify({ state: placeData.trim(), area: '' });
+      }
+    }
+  }
+  
+  // If it's an object, convert to JSON string
+  if (typeof placeData === 'object' && placeData !== null) {
+    if (placeData.state && placeData.state.trim().length >= 2) {
+      return JSON.stringify({
+        state: placeData.state.trim(),
+        area: (placeData.area || '').trim()
+      });
+    }
+  }
+  
+  return null;
+}
+
 // GET /api/martyrs - Get all approved martyrs (public)
 router.get('/', catchAsync(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -31,8 +66,8 @@ router.get('/', catchAsync(async (req, res) => {
   }
 
   if (place) {
-    whereConditions.push('place_of_martyrdom LIKE ?');
-    params.push(`%${place}%`);
+    whereConditions.push('(place_of_martyrdom LIKE ? OR JSON_EXTRACT(place_of_martyrdom, "$.state") LIKE ? OR JSON_EXTRACT(place_of_martyrdom, "$.area") LIKE ?)');
+    params.push(`%${place}%`, `%${place}%`, `%${place}%`);
   }
 
   if (education) {
@@ -153,10 +188,10 @@ router.post('/public',
       image_url = `/uploads/${req.file.filename}`;
     }
     
-    // Handle place_of_martyrdom as string (frontend sends formatted string)
-    let parsedPlace = place_of_martyrdom;
-    if (typeof place_of_martyrdom === 'object') {
-      parsedPlace = JSON.stringify(place_of_martyrdom);
+    // Handle place_of_martyrdom using normalize function
+    const normalizedPlace = normalizePlaceOfMartyrdom(place_of_martyrdom);
+    if (!normalizedPlace) {
+      return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
     // Convert children to integer or null
@@ -181,7 +216,7 @@ router.post('/public',
       name_ar,
       name_en,
       date_of_martyrdom,
-      parsedPlace,
+      normalizedPlace,
       education_level,
       university_name || null,
       faculty || null,
@@ -239,10 +274,10 @@ router.post('/',
       image_url = `/uploads/${req.file.filename}`;
     }
     
-    // Handle place_of_martyrdom as string (frontend sends formatted string)
-    let parsedPlace = place_of_martyrdom;
-    if (typeof place_of_martyrdom === 'object') {
-      parsedPlace = JSON.stringify(place_of_martyrdom);
+    // Handle place_of_martyrdom using normalize function
+    const normalizedPlace = normalizePlaceOfMartyrdom(place_of_martyrdom);
+    if (!normalizedPlace) {
+      return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
     const query = `
@@ -258,7 +293,7 @@ router.post('/',
       name_ar,
       name_en,
       date_of_martyrdom,
-      parsedPlace,
+      normalizedPlace,
       education_level,
       university_name || null,
       faculty || null,
@@ -266,7 +301,7 @@ router.post('/',
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      children ? parseInt(children, 10) || null : null,
       occupation,
       bio || null,
       image_url
@@ -331,10 +366,10 @@ router.put('/:id',
       image_url = `/uploads/${req.file.filename}`;
     }
     
-    // Handle place_of_martyrdom as string
-    let parsedPlace = place_of_martyrdom;
-    if (typeof place_of_martyrdom === 'object') {
-      parsedPlace = JSON.stringify(place_of_martyrdom);
+    // Handle place_of_martyrdom using normalize function
+    const normalizedPlace = normalizePlaceOfMartyrdom(place_of_martyrdom);
+    if (!normalizedPlace) {
+      return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
     const query = `
@@ -350,7 +385,7 @@ router.put('/:id',
       name_ar,
       name_en,
       date_of_martyrdom,
-      parsedPlace,
+      normalizedPlace,
       education_level,
       university_name || null,
       faculty || null,
@@ -358,7 +393,7 @@ router.put('/:id',
       school_state || null,
       school_locality || null,
       spouse || null,
-      children || null,
+      children ? parseInt(children, 10) || null : null,
       occupation,
       bio || null,
       image_url,
