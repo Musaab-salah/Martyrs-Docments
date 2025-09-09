@@ -483,7 +483,7 @@ router.get('/admin/all',
     params.push(approvalStatus);
   }
 
-  const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+  const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') + ' ' : '';
 
   // Get total count
   const countQuery = `SELECT COUNT(*) as total FROM martyrs ${whereClause}`;
@@ -491,20 +491,18 @@ router.get('/admin/all',
   const total = countResult[0].total;
 
   // Get martyrs with pagination (admin view includes all fields)
-  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
-       education_level, university_name, faculty, department,
-       school_state, school_locality, spouse, children, occupation, bio, image_url, 
-       approved, status, created_at, updated_at`;
+  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, education_level, university_name, faculty, department, school_state, school_locality, spouse, children, occupation, bio, image_url, approved, status, created_at, updated_at`;
 
-  const query = `
-    SELECT ${selectFields}
-    FROM martyrs  
-    ${whereClause}
-    ORDER BY created_at DESC, name_ar ASC 
-    LIMIT ? OFFSET ?
-  `;
+  const query = `SELECT ${selectFields} FROM martyrs ${whereClause}ORDER BY created_at DESC, name_ar ASC LIMIT ? OFFSET ?`;
   
-  const [martyrs] = await pool.execute(query, [...params, limit, offset]);
+  // Try using query instead of execute as a workaround
+  const allParams = [...params, limit, offset];
+  let paramIndex = 0;
+  const finalQuery = query.replace(/\?/g, () => {
+    const val = allParams[paramIndex++];
+    return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
+  });
+  const [martyrs] = await pool.query(finalQuery);
   
   // Calculate pagination info
   const totalPages = Math.ceil(total / limit);

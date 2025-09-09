@@ -22,6 +22,16 @@ const AdminDashboardPage = () => {
   const [previewMartyr, setPreviewMartyr] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  
+  // Debug function to safely log martyr data
+  const debugMartyr = (martyr, context = '') => {
+    console.log(`Martyr data (${context}):`, {
+      id: martyr.id,
+      name_ar: martyr.name_ar,
+      place_of_martyrdom: martyr.place_of_martyrdom,
+      place_type: typeof martyr.place_of_martyrdom
+    });
+  };
 
   const adminToken = localStorage.getItem('adminToken');
 
@@ -289,14 +299,24 @@ const AdminDashboardPage = () => {
                 </thead>
                 <tbody className="table-body">
                   {martyrs.map((martyr) => {
+                    // Debug martyr data
+                    debugMartyr(martyr, 'table-render');
+                    
                     // Handle place_of_martyrdom - it could be a string or JSON
                     let placeData;
                     try {
-                      placeData = JSON.parse(martyr.place_of_martyrdom || '{}');
+                      // Check if it's already an object
+                      if (typeof martyr.place_of_martyrdom === 'object' && martyr.place_of_martyrdom !== null) {
+                        placeData = martyr.place_of_martyrdom;
+                      } else {
+                        placeData = JSON.parse(martyr.place_of_martyrdom || '{}');
+                      }
                     } catch (error) {
                       // If it's not valid JSON, treat it as a simple string
                       placeData = { state: martyr.place_of_martyrdom || '', area: '' };
                     }
+                    
+                    console.log('Processed placeData for martyr', martyr.id, ':', placeData);
                     
                     const martyrStatus = getMartyrStatus(martyr);
                     
@@ -306,15 +326,15 @@ const AdminDashboardPage = () => {
                           <div className="flex items-center space-x-3 space-x-reverse">
                             <div className="flex-shrink-0 h-12 w-12">
                               <ImageWithFallback
-                                src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
+                                src={martyr.image_url ? martyr.image_url : "/default.png"}
                                 alt={martyr.name_ar}
                                 className="h-12 w-12 rounded-full object-cover"
                                 fallbackSrc="/default.png"
                               />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{martyr.name_ar}</div>
-                              <div className="text-sm text-gray-500">{martyr.name_en}</div>
+                              <div className="text-sm font-medium text-gray-900">{String(martyr.name_ar || '')}</div>
+                              <div className="text-sm text-gray-500">{String(martyr.name_en || '')}</div>
                             </div>
                           </div>
                         </td>
@@ -324,9 +344,9 @@ const AdminDashboardPage = () => {
                           </div>
                         </td>
                         <td className="table-cell">
-                          <div className="text-sm text-gray-900">{placeData.state}</div>
+                          <div className="text-sm text-gray-900">{String(placeData.state || '')}</div>
                           {placeData.area && (
-                            <div className="text-sm text-gray-500">{placeData.area}</div>
+                            <div className="text-sm text-gray-500">{String(placeData.area)}</div>
                           )}
                         </td>
                         <td className="table-cell">
@@ -465,7 +485,7 @@ const AdminDashboardPage = () => {
                 <div className="space-y-6">
                   <div className="text-center">
                     <ImageWithFallback
-                      src={previewMartyr.image_url ? `${getApiBaseUrl()}${previewMartyr.image_url}` : "/default.png"}
+                      src={previewMartyr.image_url ? previewMartyr.image_url : "/default.png"}
                       alt={previewMartyr.name_ar}
                       className="w-32 h-32 rounded-full object-cover mx-auto"
                       fallbackSrc="/default.png"
