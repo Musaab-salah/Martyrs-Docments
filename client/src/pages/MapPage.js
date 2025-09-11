@@ -66,10 +66,14 @@ const MapPage = () => {
     
     martyrs.forEach(martyr => {
       let placeData;
-      try {
-        placeData = JSON.parse(martyr.place_of_martyrdom);
-      } catch (error) {
-        placeData = { state: martyr.place_of_martyrdom, area: '' };
+      if (typeof martyr.place_of_martyrdom === 'object' && martyr.place_of_martyrdom !== null) {
+        placeData = martyr.place_of_martyrdom;
+      } else {
+        try {
+          placeData = JSON.parse(martyr.place_of_martyrdom);
+        } catch (error) {
+          placeData = { state: martyr.place_of_martyrdom, area: '' };
+        }
       }
 
       // Use state coordinates for map display
@@ -228,10 +232,14 @@ const MapPage = () => {
               >
                 {martyrs.map((martyr) => {
                   let placeData;
-                  try {
-                    placeData = JSON.parse(martyr.place_of_martyrdom);
-                  } catch (error) {
-                    placeData = { state: martyr.place_of_martyrdom, area: '' };
+                  if (typeof martyr.place_of_martyrdom === 'object' && martyr.place_of_martyrdom !== null) {
+                    placeData = martyr.place_of_martyrdom;
+                  } else {
+                    try {
+                      placeData = JSON.parse(martyr.place_of_martyrdom);
+                    } catch (error) {
+                      placeData = { state: martyr.place_of_martyrdom, area: '' };
+                    }
                   }
 
                   // Use state coordinates for map display

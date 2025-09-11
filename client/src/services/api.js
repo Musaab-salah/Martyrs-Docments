@@ -254,7 +254,7 @@ export const adminApi = {
   getMartyrById: (id, token) => {
     if (USE_MOCK_API) return mockAdminApi.getMartyrById(id, token);
     const api = new ApiService();
-    return api.get(`/martyrs/admin/${id}`, {}, { 'Authorization': `Bearer ${token}` });
+    return api.get(`/martyrs/${id}`, {}, { 'Authorization': `Bearer ${token}` });
   },
   
   updateMartyr: (id, formData, token) => {

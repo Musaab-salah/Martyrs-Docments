@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import Header from '../../components/Header';
 import { adminApi } from '../../services/api';
 
@@ -19,7 +20,7 @@ const AdminEditMartyrPage = () => {
     name_ar: '',
     name_en: '',
     date_of_martyrdom: '',
-    place_of_martyrdom: '',
+    place_of_martyrdom: { state: '', area: '' },
     education_level: '',
     university_name: '',
     faculty: '',
@@ -33,8 +34,51 @@ const AdminEditMartyrPage = () => {
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [markerPosition, setMarkerPosition] = useState(null);
 
   const adminToken = localStorage.getItem('adminToken');
+
+  // Sudan States list
+  const sudanStates = [
+    'الخرطوم (Khartoum)',
+    'الجزيرة (Gezira)',
+    'كسلا (Kassala)',
+    'البحر الأحمر (Red Sea)',
+    'شمال دارفور (North Darfur)',
+    'جنوب دارفور (South Darfur)',
+    'غرب دارفور (West Darfur)',
+    'شرق دارفور (East Darfur)',
+    'وسط دارفور (Central Darfur)',
+    'شمال كردفان (North Kordofan)',
+    'جنوب كردفان (South Kordofan)',
+    'سنار (Sennar)',
+    'النيل الأبيض (White Nile)',
+    'النيل الأزرق (Blue Nile)',
+    'نهر النيل (River Nile)',
+    'الشمالية (Northern)',
+    'غرب كردفان (West Kordofan)'
+  ];
+
+  // State coordinates mapping
+  const stateCoordinates = {
+    'الخرطوم (Khartoum)': [15.5007, 32.5599],
+    'الجزيرة (Gezira)': [14.4060, 33.5186],
+    'كسلا (Kassala)': [15.4500, 36.4000],
+    'البحر الأحمر (Red Sea)': [19.5000, 37.2000],
+    'شمال دارفور (North Darfur)': [13.6333, 25.3333],
+    'جنوب دارفور (South Darfur)': [11.4000, 25.5000],
+    'غرب دارفور (West Darfur)': [12.6167, 23.2667],
+    'شرق دارفور (East Darfur)': [11.1333, 26.1333],
+    'وسط دارفور (Central Darfur)': [12.4000, 24.8667],
+    'شمال كردفان (North Kordofan)': [13.1667, 30.2167],
+    'جنوب كردفان (South Kordofan)': [11.0167, 29.7167],
+    'سنار (Sennar)': [13.5500, 33.6000],
+    'النيل الأبيض (White Nile)': [13.1000, 33.7333],
+    'النيل الأزرق (Blue Nile)': [11.1667, 34.3333],
+    'نهر النيل (River Nile)': [18.2167, 32.8167],
+    'الشمالية (Northern)': [19.6167, 30.2167],
+    'غرب كردفان (West Kordofan)': [12.1667, 28.6667]
+  };
 
   useEffect(() => {
     if (!adminToken) {
@@ -47,11 +91,40 @@ const AdminEditMartyrPage = () => {
         setLoading(true);
         const data = await adminApi.getMartyrById(id, adminToken);
 
+        // Handle place_of_martyrdom object conversion
+        let placeData = { state: '', area: '' };
+        if (data.martyr.place_of_martyrdom) {
+          if (typeof data.martyr.place_of_martyrdom === 'object') {
+            placeData = {
+              state: data.martyr.place_of_martyrdom.state || '',
+              area: data.martyr.place_of_martyrdom.area || ''
+            };
+          } else {
+            try {
+              const parsed = JSON.parse(data.martyr.place_of_martyrdom);
+              placeData = {
+                state: parsed.state || '',
+                area: parsed.area || ''
+              };
+            } catch (e) {
+              placeData = { state: data.martyr.place_of_martyrdom, area: '' };
+            }
+          }
+        }
+        
+        // Set marker position if state is found
+        if (placeData.state) {
+          const coords = stateCoordinates[placeData.state];
+          if (coords) {
+            setMarkerPosition(coords);
+          }
+        }
+
         setFormData({
           name_ar: data.martyr.name_ar || '',
           name_en: data.martyr.name_en || '',
           date_of_martyrdom: data.martyr.date_of_martyrdom || '',
-          place_of_martyrdom: data.martyr.place_of_martyrdom || '',
+          place_of_martyrdom: placeData,
           education_level: data.martyr.education_level || '',
           university_name: data.martyr.university_name || '',
           faculty: data.martyr.faculty || '',
@@ -78,10 +151,26 @@ const AdminEditMartyrPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'state' || name === 'area') {
+      setFormData(prev => ({
+        ...prev,
+        place_of_martyrdom: {
+          ...prev.place_of_martyrdom,
+          [name]: value
+        }
+      }));
+      
+      // Update marker position when state changes
+      if (name === 'state') {
+        const coords = stateCoordinates[value];
+        setMarkerPosition(coords);
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -105,7 +194,11 @@ const AdminEditMartyrPage = () => {
       
       // Add all form fields
       Object.keys(formData).forEach(key => {
-        if (formData[key]) {
+        if (key === 'place_of_martyrdom') {
+          // Send place_of_martyrdom as JSON string
+          const place = formData[key];
+          formDataToSend.append(key, JSON.stringify(place));
+        } else if (formData[key]) {
           formDataToSend.append(key, formData[key]);
         }
       });
@@ -215,18 +308,93 @@ const AdminEditMartyrPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  مكان الاستشهاد *
+                  المهنة *
                 </label>
                 <input
                   type="text"
-                  name="place_of_martyrdom"
-                  value={formData.place_of_martyrdom}
+                  name="occupation"
+                  value={formData.occupation}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
+            </div>
 
+            {/* Location Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  الولاية (مكان الاستشهاد) *
+                </label>
+                <select
+                  name="state"
+                  value={formData.place_of_martyrdom.state}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">اختر الولاية</option>
+                  {sudanStates.map((state, index) => (
+                    <option key={index} value={state}>{state}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  المنطقة *
+                </label>
+                <input
+                  type="text"
+                  name="area"
+                  value={formData.place_of_martyrdom.area}
+                  onChange={handleInputChange}
+                  placeholder="مثال: أم درمان، واد مدني، الخرطوم بحري"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            {/* Map Preview */}
+            {formData.place_of_martyrdom.state && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  موقع الاستشهاد على الخريطة
+                </label>
+                <div className="border border-gray-300 rounded-md overflow-hidden" style={{ height: "400px" }}>
+                  <MapContainer 
+                    center={markerPosition || [15.5007, 32.5599]} 
+                    zoom={markerPosition ? 7 : 6} 
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer 
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    {markerPosition && (
+                      <Marker position={markerPosition}>
+                        <Popup>
+                          <div className="text-center">
+                            <strong>{formData.place_of_martyrdom.state}</strong><br />
+                            {formData.place_of_martyrdom.area && (
+                              <span>{formData.place_of_martyrdom.area}</span>
+                            )}
+                          </div>
+                        </Popup>
+                      </Marker>
+                    )}
+                  </MapContainer>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  يتم عرض الموقع التقريبي لمركز الولاية (مكان الاستشهاد) المختارة
+                </p>
+              </div>
+            )}
+
+            {/* Education Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   المستوى التعليمي *
@@ -247,19 +415,6 @@ const AdminEditMartyrPage = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  المهنة *
-                </label>
-                <input
-                  type="text"
-                  name="occupation"
-                  value={formData.occupation}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
             </div>
 
             {/* University Information */}
