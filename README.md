@@ -1,6 +1,11 @@
 # Martyrs Archive - Digital Memorial Platform
 
-A comprehensive digital archive platform for documenting and honoring martyrs with respect and organization. Built with React, Node.js, and MySQL.
+A comprehensive digital archive platform for documenting and honoring martyrs with respect and organization. Built with React, Node.js, and MySQL with both traditional server and serverless deployment options.
+
+## 🌐 Live Demo
+- **Production**: https://martyrssud.com/
+- **Development**: https://martyrs-azbfec8tt-musaabsalaheldin-9472s-projects.vercel.app
+- **Repository**: https://github.com/Musaab-salah/Martyrs-Docments
 
 ## 🚀 Features
 
@@ -19,19 +24,21 @@ A comprehensive digital archive platform for documenting and honoring martyrs wi
 ### Frontend
 - **React 18** - Modern UI library with hooks
 - **Tailwind CSS** - Utility-first CSS framework
-- **React Router** - Client-side routing
-- **Custom Hooks** - Reusable state management
-- **Service Layer** - Centralized API communication
+- **React Router DOM v6** - Client-side routing
+- **React Query** - Server state management and caching
+- **React Hook Form** - Form handling
+- **Chart.js** - Statistics visualization
+- **Leaflet** - Interactive maps
 
-### Backend
-- **Node.js** - Server-side JavaScript runtime
-- **Express.js** - Web application framework
-- **MySQL** - Relational database
-- **Multer** - File upload handling
+### Backend (Dual Architecture)
+- **Traditional Server**: Express.js application (`/server/`)
+- **Serverless Functions**: Vercel-compatible functions (`/api/`)
+- **MySQL** - Relational database with UTF8MB4 charset
+- **JWT Authentication** - Admin authentication with bcrypt
+- **Multer + Sharp** - File upload and image processing
 - **Express Validator** - Input validation
 - **Helmet** - Security middleware
 - **Rate Limiting** - API protection
-- **Compression** - Response optimization
 
 ### Development Tools
 - **Nodemon** - Auto-restart server during development
@@ -41,47 +48,69 @@ A comprehensive digital archive platform for documenting and honoring martyrs wi
 ## 📁 Project Structure
 
 ```
-martyrs-archive/
+Martyrs-Docments/
+├── api/                        # Vercel serverless functions
+│   ├── auth/login.js          # Admin authentication
+│   ├── martyrs/index.js       # Martyrs CRUD operations
+│   ├── martyrs/[id].js        # Individual martyr operations
+│   ├── admin/martyrs.js       # Admin martyrs management
+│   ├── stats/index.js         # Statistics endpoint
+│   ├── tributes/index.js      # Tributes management
+│   └── health.js              # Health check
 ├── client/                     # React frontend
 │   ├── public/
 │   │   ├── index.html
 │   │   └── favicon.ico
 │   └── src/
 │       ├── components/         # Reusable UI components
-│       │   ├── LoadingSpinner.js
-│       │   └── ErrorMessage.js
-│       ├── hooks/             # Custom React hooks
-│       │   ├── useMartyrs.js
-│       │   └── useFormValidation.js
+│       │   ├── Header.js       # Unified header component
+│       │   └── ProtectedRoute.js # Admin route protection
+│       ├── pages/             # Page components
+│       │   ├── HomePage.js     # Landing page
+│       │   ├── MartyrsPage.js  # Martyrs listing
+│       │   ├── MapPage.js      # Interactive map
+│       │   └── admin/         # Admin pages
+│       │       ├── AdminLoginPage.js
+│       │       ├── AdminDashboardPage.js
+│       │       └── AdminAddMartyrPage.js
 │       ├── services/          # API service layer
-│       │   └── api.js
-│       ├── App.js             # Main application component
-│       ├── index.js           # Application entry point
-│       └── index.css          # Global styles
-├── server/                    # Node.js backend
+│       │   └── api.js         # API integration with mock support
+│       ├── App.js             # Main application with routing
+│       └── index.js           # Application entry point
+├── server/                    # Traditional Express server
 │   ├── config/               # Configuration files
 │   │   └── database.js       # Database configuration
 │   ├── middleware/           # Express middleware
+│   │   ├── auth.js           # Authentication middleware
 │   │   ├── upload.js         # File upload handling
 │   │   └── validation.js     # Input validation
 │   ├── routes/               # API routes
-│   │   └── martyrs.js        # Martyrs endpoints
-│   ├── utils/                # Utility functions
-│   │   └── errorHandler.js   # Error handling utilities
+│   │   ├── martyrs.js        # Martyrs endpoints
+│   │   ├── auth.js           # Authentication routes
+│   │   ├── admin.js          # Admin routes
+│   │   └── stats.js          # Statistics routes
 │   └── index.js              # Server entry point
-├── uploads/                  # File upload directory
-├── database/                 # Database scripts
-├── package.json              # Project dependencies
-└── README.md                 # Project documentation
+├── database/                  # Database scripts and migrations
+│   ├── final_schema.sql       # Clean database schema
+│   ├── migrate_preserve_data.js # Data-preserving migration
+│   └── setup.js               # Database initialization
+├── nginx/                     # Nginx configuration
+│   └── martyrs-archive.conf  # Production nginx config
+├── vercel.json               # Vercel deployment config
+├── railway.json              # Railway deployment config
+├── render.yaml               # Render deployment config
+├── CLAUDE.md                 # Claude Code instructions
+├── DEPLOYMENT_GUIDE.md       # Comprehensive deployment guide
+└── package.json              # Project dependencies
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - MySQL (v8.0 or higher)
-- npm or yarn
+- Yarn (recommended) or npm
 
 ### Installation
 
@@ -93,7 +122,7 @@ martyrs-archive/
 
 2. **Install dependencies**
    ```bash
-   npm run install-all
+   yarn install-all
    ```
 
 3. **Set up environment variables**
@@ -111,12 +140,12 @@ martyrs-archive/
 
 4. **Initialize the database**
    ```bash
-   npm run setup
+   yarn setup
    ```
 
 5. **Start the development servers**
    ```bash
-   npm run dev
+   yarn dev
    ```
 
 The application will be available at:
@@ -175,17 +204,23 @@ curl http://localhost:5000/api/martyrs/stats/summary
 
 ```bash
 # Development
-npm run dev          # Start both frontend and backend
-npm run server       # Start backend only
-npm run client       # Start frontend only
+yarn dev              # Start both frontend (port 3000) and backend (port 5000)
+yarn client           # Start React frontend only
+yarn server           # Start Express backend only
+yarn install-all     # Install dependencies for root, client, and server
 
 # Production
-npm run build        # Build frontend for production
-npm start           # Start production server
+yarn build           # Build React app for production
+yarn start           # Start production server
 
-# Database
-npm run setup       # Initialize database
-npm run db:init     # Alias for setup
+# Database Management
+yarn setup           # Initialize database with schema
+yarn migrate         # Run database migrations
+yarn backup          # Create database backup
+
+# Quality & Testing
+# Manual testing through development servers
+# API testing via health check endpoints at /api/health
 ```
 
 ### Code Organization
@@ -292,44 +327,46 @@ ALTER TABLE martyrs ADD COLUMN approved BOOLEAN DEFAULT FALSE;
 
 ## 🚀 Deployment
 
-### Production Build
+The project supports multiple deployment architectures:
 
-1. **Build the frontend**
-   ```bash
-   npm run build
-   ```
+### 1. Traditional Server Deployment
+- **Backend Service**: systemd service running on port 5000
+- **Frontend**: Static files served by nginx
+- **Database**: MySQL with `api` user for application access
+- **SSL**: nginx with SSL certificates
+- **Production Commands**:
+  ```bash
+  yarn build                             # Build React app for production  
+  sudo systemctl start martyrs-archive  # Start backend service
+  sudo systemctl enable martyrs-archive # Enable on boot
+  sudo nginx -t && sudo systemctl reload nginx  # Deploy nginx config
+  ```
 
-2. **Set production environment**
-   ```env
-   NODE_ENV=production
-   DB_HOST=your_production_db_host
-   DB_USER=your_production_db_user
-   DB_PASSWORD=your_production_db_password
-   DB_NAME=your_production_db_name
-   ```
+### 2. Serverless Deployment (Vercel)
+- **Functions**: `/api/` folder with Vercel-compatible serverless functions
+- **Frontend**: React SPA with static generation
+- **Database**: Remote MySQL database
+- **Configuration**: See `vercel.json`
 
-3. **Start the production server**
-   ```bash
-   npm start
-   ```
+### 3. Other Platforms
+- **Railway**: Container deployment (see `railway.json`)
+- **Render**: Alternative hosting (see `render.yaml`)
+- **Heroku**: Traditional PaaS (see `Procfile`)
 
-### Docker Deployment (Optional)
+### Environment Variables
+```env
+# Database Configuration
+DB_HOST=your_production_db_host
+DB_USER=your_production_db_user
+DB_PASSWORD=your_production_db_password
+DB_NAME=martyrs_archive
 
-```dockerfile
-FROM node:18-alpine
+# Security
+JWT_SECRET=your-super-secret-jwt-key
+CORS_ORIGIN=https://martyrssud.com,https://www.martyrssud.com
 
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-
-RUN npm run build
-
-EXPOSE 5000
-
-CMD ["npm", "start"]
+# Optional
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
 
 ## 🤝 Contributing
@@ -362,9 +399,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
-- Create an issue in the repository
+- Create an issue in the repository: https://github.com/Musaab-salah/Martyrs-Docments/issues
 - Contact the development team
-- Check the documentation
+- Check the comprehensive documentation in the repository
+
+## 📖 Additional Documentation
+
+- `CLAUDE.md` - Instructions for Claude Code development
+- `DEPLOYMENT_GUIDE.md` - Comprehensive deployment guide for Vercel serverless functions
+- `DATABASE_MIGRATION_README.md` - Database migration and setup guide
+- `ADMIN_ROUTING_IMPLEMENTATION.md` - Admin routing and authentication system
+- `HOW_TO_RUN.md` - Detailed setup and running instructions
+
+## 🔄 Recent Updates
+
+- ✅ **Image Loading Fixed**: Corrected frontend URL paths and React rendering errors
+- ✅ **Production Ready**: Removed console.log statements from production code
+- ✅ **Database Refactored**: Improved connection handling and validation middleware
+- ✅ **Multi-Deployment**: Added serverless functions for Vercel deployment
+- ✅ **Admin System**: Implemented protected routes and unified header components
+- ✅ **Documentation**: Comprehensive guides for deployment and development
 
 ---
 

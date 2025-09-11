@@ -1,8 +1,11 @@
 # Status System Guide
 
+**Production URL**: https://martyrssud.com/  
+**Repository**: https://github.com/Musaab-salah/Martyrs-Docments
+
 ## Overview
 
-The Martyrs Archive now includes a comprehensive status management system that allows administrators to properly manage martyr records with three distinct statuses:
+The Martyrs Archive includes a comprehensive status management system that allows administrators to properly manage martyr records with three distinct statuses:
 
 - **Pending** (في الانتظار) - New submissions awaiting review
 - **Approved** (مُوافق عليه) - Approved and publicly visible records

@@ -34,7 +34,8 @@ This guide covers the deployment of the Martyrs Archive project to Vercel with s
 
 ## 🌐 Deployment URL
 
-**Production URL**: https://martyrs-c1x43y1fs-musaabsalaheldin-9472s-projects.vercel.app/
+**Production URL**: https://martyrssud.com/  
+**Development URL**: https://martyrs-c1x43y1fs-musaabsalaheldin-9472s-projects.vercel.app/
 
 ## 🔑 Environment Variables
 

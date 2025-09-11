@@ -1,5 +1,8 @@
 # Admin Routing Implementation
 
+**Production URL**: https://martyrssud.com/  
+**Repository**: https://github.com/Musaab-salah/Martyrs-Docments
+
 ## Overview
 This document outlines the implementation of proper admin routing and unified header components for the Martyrs Archive project.
 

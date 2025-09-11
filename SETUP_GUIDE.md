@@ -1,19 +1,22 @@
 # 🚀 Quick Setup Guide - Martyrs Archive
 
+**Production URL**: https://martyrssud.com/  
+**Repository**: https://github.com/Musaab-salah/Martyrs-Docments
+
 ## Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - MySQL (v8.0 or higher)
-- npm or yarn
+- Yarn (recommended) or npm
 
 ## ⚡ Quick Start (5 minutes)
 
 ### 1. Install Dependencies
 ```bash
 # Install backend dependencies
-npm install
+yarn install
 
 # Install frontend dependencies
-cd client && npm install && cd ..
+cd client && yarn install && cd ..
 ```
 
 ### 2. Configure Environment
@@ -28,13 +31,13 @@ cp env.example .env
 ### 3. Setup Database
 ```bash
 # Run the setup script (creates database, tables, and admin account)
-npm run setup
+yarn setup
 ```
 
 ### 4. Start the Application
 ```bash
 # Start both backend and frontend
-npm run dev
+yarn dev
 ```
 
 ### 5. Access the Application

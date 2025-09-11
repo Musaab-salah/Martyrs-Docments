@@ -10,9 +10,11 @@ Your project is now **fully functional** with no critical errors. Only minor war
 
 ### **Option 1: Use Production Version (Easiest)**
 Your app is already live and working:
-**🌐 https://martyrs-azbfec8tt-musaabsalaheldin-9472s-projects.vercel.app**
+**🌐 https://martyrssud.com/**
 
-Just visit this URL - no setup required!
+Development version: https://martyrs-azbfec8tt-musaabsalaheldin-9472s-projects.vercel.app
+
+Just visit the production URL - no setup required!
 
 ---
 
@@ -20,23 +22,23 @@ Just visit this URL - no setup required!
 
 ### **Step 1: Navigate to Project**
 ```bash
-cd G:\Martyrs-Docments
+cd D:\Work\Freelancing\Martyrs-Docments
 ```
 
 ### **Step 2: Install Dependencies**
 ```bash
 # Install root dependencies
-npm install
+yarn install
 
 # Install client dependencies
 cd client
-npm install
+yarn install
 ```
 
 ### **Step 3: Start Development Server**
 ```bash
 # Start React app with mock API (recommended)
-npm start
+yarn start
 ```
 
 Your app will open at: **http://localhost:3000**
@@ -48,7 +50,7 @@ Your app will open at: **http://localhost:3000**
 ### **Method 1: Frontend Only (Mock API)**
 ```bash
 cd client
-npm start
+yarn start
 ```
 - ✅ **No backend required**
 - ✅ **Mock API provides full functionality**
@@ -57,11 +59,11 @@ npm start
 ### **Method 2: Full Stack (Frontend + Backend)**
 ```bash
 # Terminal 1: Start backend
-npm run server
+yarn server
 
 # Terminal 2: Start frontend
 cd client
-npm start
+yarn start
 ```
 - ⚠️ **Requires MySQL database setup**
 - ⚠️ **More complex setup**
@@ -69,8 +71,8 @@ npm start
 ### **Method 3: Production Build**
 ```bash
 cd client
-npm run build
-npm install -g serve
+yarn build
+yarn global add serve
 serve -s build
 ```
 
