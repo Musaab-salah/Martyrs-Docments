@@ -286,8 +286,6 @@ const AdminDashboardPage = () => {
                 </thead>
                 <tbody className="table-body">
                   {martyrs.map((martyr) => {
-                    // Debug martyr data
-                    debugMartyr(martyr, 'table-render');
                     
                     // Handle place_of_martyrdom - it could be a string or JSON
                     let placeData;
