@@ -205,7 +205,7 @@ curl http://localhost:5000/api/martyrs/stats/summary
 ```bash
 # Development
 yarn dev              # Start both frontend (port 3000) and backend (port 5000)
-yarn client           # Start React frontend only
+yarn client           # Start React frontend only  
 yarn server           # Start Express backend only
 yarn install-all     # Install dependencies for root, client, and server
 
@@ -213,15 +213,15 @@ yarn install-all     # Install dependencies for root, client, and server
 yarn build           # Build React app for production
 yarn start           # Start production server
 
-# Database Management
+# Database Management  
 yarn setup           # Initialize database with schema
-yarn migrate         # Run database migrations
-yarn backup          # Create database backup
 
 # Quality & Testing
 # Manual testing through development servers
 # API testing via health check endpoints at /api/health
 ```
+
+**Note**: While you can use `yarn` commands, the internal scripts still use `npm`. Both package managers work interchangeably for running these scripts.
 
 ### Code Organization
 
