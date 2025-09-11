@@ -9,10 +9,6 @@ import ImageWithFallback from '../components/ImageWithFallback';
 import { martyrsApi } from '../services/api';
 import { formatDateToGregorian } from '../utils/dateFormatter';
 
-// Helper function to get API base URL
-const getApiBaseUrl = () => {
-  return process.env.REACT_APP_API_URL || 'http://localhost:5000';
-};
 
 // Fix for default markers in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
