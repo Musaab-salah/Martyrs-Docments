@@ -154,13 +154,6 @@ router.get('/:id', catchAsync(async (req, res) => {
 // POST /api/martyrs/public - Add a new martyr (public endpoint)
 router.post('/public', 
   upload.single('image'), 
-  (req, res, next) => {
-    console.log('🔧 DEBUG - Public martyr submission request:', {
-      body: req.body,
-      file: req.file ? req.file.filename : 'no file'
-    });
-    next();
-  },
   martyrValidation, 
   handleValidationErrors,
   handleUploadError,
@@ -530,16 +523,13 @@ router.patch('/:id/approve',
   const { id } = req.params;
   const { approved, status } = req.body;
   
-  console.log('Approval request received:', { id, approved, status, body: req.body });
   
   // Check if martyr exists
   const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
   if (existing.length === 0) {
-    console.log('Martyr not found:', id);
     return res.status(404).json({ error: 'Martyr not found' });
   }
   
-  console.log('Existing martyr:', existing[0]);
   
   // Determine the new status
   let newStatus = 'pending';
@@ -555,7 +545,6 @@ router.patch('/:id/approve',
     newApproved = approved;
   }
   
-  console.log('New status values:', { newStatus, newApproved });
   
   // Update both status and approved field for consistency
   await pool.execute(
@@ -569,7 +558,6 @@ router.patch('/:id/approve',
     [id]
   );
 
-  console.log('Updated martyr:', updatedMartyr[0]);
 
   const statusMessages = {
     'approved': 'Martyr approved successfully',

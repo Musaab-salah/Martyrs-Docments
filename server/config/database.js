@@ -24,7 +24,6 @@ const createPool = async () => {
     // Test the connection immediately
     const connection = await pool.getConnection();
     connection.release();
-    console.log('✅ Database pool created successfully');
     return true;
   } catch (error) {
     console.warn('⚠️  Could not create database pool:', error.message);
@@ -44,7 +43,6 @@ const testConnection = async () => {
   
   try {
     const connection = await pool.getConnection();
-    console.log('✅ Database connection established');
     connection.release();
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
@@ -56,7 +54,6 @@ const testConnection = async () => {
 const closePool = async () => {
   try {
     await pool.end();
-    console.log('Database pool closed');
   } catch (error) {
     console.error('Error closing database pool:', error);
   }
@@ -149,7 +146,6 @@ const initializeDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    console.log(' Database tables initialized successfully');
     connection.release();
   } catch (error) {
     console.error(' Database initialization failed:', error.message);

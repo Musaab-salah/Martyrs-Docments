@@ -23,15 +23,6 @@ const AdminDashboardPage = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   
-  // Debug function to safely log martyr data
-  const debugMartyr = (martyr, context = '') => {
-    console.log(`Martyr data (${context}):`, {
-      id: martyr.id,
-      name_ar: martyr.name_ar,
-      place_of_martyrdom: martyr.place_of_martyrdom,
-      place_type: typeof martyr.place_of_martyrdom
-    });
-  };
 
   const adminToken = localStorage.getItem('adminToken');
 
@@ -162,7 +153,6 @@ const AdminDashboardPage = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      console.log('handleStatusUpdate called:', { id, newStatus, adminToken });
       
       // Check if admin token exists
       if (!adminToken) {
@@ -176,10 +166,8 @@ const AdminDashboardPage = () => {
       // Update martyr status (approve/reject/pending)
       // This is used for user-added martyrs that need admin approval
       const approved = newStatus === 'approved';
-      console.log('Calling adminApi.approveMartyr with:', { id, approved, adminToken, newStatus });
       
       const result = await adminApi.approveMartyr(id, approved, adminToken, newStatus);
-      console.log('Approval successful:', result);
       
       // Show success message
       const statusText = {
@@ -190,7 +178,6 @@ const AdminDashboardPage = () => {
       
       alert(statusText[newStatus] || 'تم تحديث الحالة بنجاح');
       
-      console.log('Approval successful, refreshing data...');
       fetchMartyrs();
     } catch (error) {
       console.error('Error in handleStatusUpdate:', error);
@@ -316,7 +303,6 @@ const AdminDashboardPage = () => {
                       placeData = { state: martyr.place_of_martyrdom || '', area: '' };
                     }
                     
-                    console.log('Processed placeData for martyr', martyr.id, ':', placeData);
                     
                     const martyrStatus = getMartyrStatus(martyr);
                     

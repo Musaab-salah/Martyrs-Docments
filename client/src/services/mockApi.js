@@ -62,7 +62,6 @@ class MockApiService {
     const url = `${this.baseURL}${endpoint}`;
     const method = options.method || 'GET';
     
-    console.log(`Mock API: ${method} ${url}`, options.body ? JSON.parse(options.body) : '');
 
     // Handle different endpoints
     switch (endpoint) {

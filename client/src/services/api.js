@@ -231,7 +231,6 @@ export const adminApi = {
       body.status = status;
     }
     
-    console.log('Approving martyr:', { id, approved, status, body });
     
     return api.request(`/martyrs/${id}/approve`, {
       method: 'PATCH',
