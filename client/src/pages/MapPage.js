@@ -258,7 +258,7 @@ const MapPage = () => {
                           {placeData.area && <p className="text-sm"><strong>المنطقة:</strong> {placeData.area}</p>}
                           <p className="text-sm"><strong>المهنة:</strong> {martyr.occupation}</p>
                           <ImageWithFallback 
-                            src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
+                            src={martyr.image_url || "/default.png"}
                             alt={martyr.name_ar}
                             className="w-20 h-20 object-cover rounded mt-2"
                             fallbackSrc="/default.png"
@@ -306,7 +306,7 @@ const MapPage = () => {
                           <div key={martyr.id} className={`border-b border-gray-200 ${martyrIndex > 0 ? 'pt-3' : ''}`}>
                             <div className="flex items-start space-x-3 space-x-reverse">
                               <ImageWithFallback 
-                                src={martyr.image_url ? `${getApiBaseUrl()}${martyr.image_url}` : "/default.png"}
+                                src={martyr.image_url || "/default.png"}
                                 alt={martyr.name_ar}
                                 className="w-12 h-12 object-cover rounded flex-shrink-0"
                                 fallbackSrc="/default.png"

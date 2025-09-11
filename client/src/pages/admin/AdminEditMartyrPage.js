@@ -64,7 +64,7 @@ const AdminEditMartyrPage = () => {
           bio: data.martyr.bio || ''
         });
         if (data.martyr.image_url) {
-          setImagePreview(`${getApiBaseUrl()}${data.martyr.image_url}`);
+          setImagePreview(data.martyr.image_url);
         }
       } catch (error) {
         setError('Network error');

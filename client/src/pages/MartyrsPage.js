@@ -126,7 +126,7 @@ const MartyrsPage = () => {
                     <div className="aspect-photo bg-gray-200 overflow-hidden">
                       {martyr.image_url ? (
                         <ImageWithFallback 
-                          src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${martyr.image_url}`}
+                          src={martyr.image_url}
                           alt={martyr.name_ar}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           fallbackSrc="/default.png"

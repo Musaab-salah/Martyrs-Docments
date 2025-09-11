@@ -94,7 +94,7 @@ const MartyrDetailPage = () => {
           <div className="h-96 bg-gray-200 relative">
             {martyr.image_url ? (
               <ImageWithFallback 
-                src={`${getApiBaseUrl()}${martyr.image_url}`} 
+                src={martyr.image_url} 
                 alt={martyr.name_ar}
                 className="w-full h-full object-contain"
                 fallbackSrc="/default.png"
