@@ -221,7 +221,6 @@ yarn setup           # Initialize database with schema
 # API testing via health check endpoints at /api/health
 ```
 
-**Note**: While you can use `yarn` commands, the internal scripts still use `npm`. Both package managers work interchangeably for running these scripts.
 
 ### Code Organization
 
