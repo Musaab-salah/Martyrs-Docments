@@ -120,6 +120,7 @@ app.get('/api/martyrs/test', (req, res) => {
   });
 });
 
+
 // API routes
 app.use('/api/martyrs', martyrsRoutes);
 app.use('/api/auth', authRoutes);

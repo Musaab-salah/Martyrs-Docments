@@ -120,6 +120,44 @@ class ApiService {
       throw error;
     }
   }
+
+  // PUT with FormData (for file uploads)
+  async putFormData(endpoint, formData, customHeaders = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: customHeaders,
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        // Try to parse error response as JSON, but handle HTML responses gracefully
+        let errorData = {};
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json().catch(() => ({}));
+        } else {
+          // If response is not JSON (e.g., HTML error page), get text instead
+          const errorText = await response.text().catch(() => 'Unknown error');
+          errorData = { message: `Server error: ${response.status} - ${errorText.substring(0, 100)}` };
+        }
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        throw new Error('Expected JSON response but received non-JSON content');
+      }
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
+  }
 }
 
 // Import mock API if needed
@@ -260,10 +298,10 @@ export const adminApi = {
   updateMartyr: (id, formData, token) => {
     if (USE_MOCK_API) return mockAdminApi.updateMartyr(id, formData, token);
     const api = new ApiService();
-    return api.request(`/martyrs/${id}`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
+    
+    // Use direct fetch for FormData with PUT method
+    return api.putFormData(`/martyrs/${id}`, formData, { 
+      'Authorization': `Bearer ${token}`
     });
   },
   

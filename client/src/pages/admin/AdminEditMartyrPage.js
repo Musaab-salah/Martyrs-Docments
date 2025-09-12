@@ -407,18 +407,16 @@ const AdminEditMartyrPage = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">اختر المستوى التعليمي</option>
-                  <option value="primary">ابتدائي</option>
-                  <option value="secondary">ثانوي</option>
-                  <option value="university">جامعي</option>
-                  <option value="postgraduate">دراسات عليا</option>
-                  <option value="other">أخرى</option>
+                  <option value="مدرسة">مدرسة</option>
+                  <option value="جامعي">جامعي</option>
+                  <option value="خريج">خريج</option>
                 </select>
               </div>
 
             </div>
 
             {/* University Information */}
-            {formData.education_level === 'university' && (
+            {(formData.education_level === 'جامعي' || formData.education_level === 'خريج') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -462,7 +460,7 @@ const AdminEditMartyrPage = () => {
             )}
 
             {/* School Information */}
-            {(formData.education_level === 'primary' || formData.education_level === 'secondary') && (
+            {formData.education_level === 'مدرسة' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

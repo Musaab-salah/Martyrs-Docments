@@ -44,7 +44,7 @@ const martyrValidation = [
       }
     }),
   body('education_level')
-    .isIn(['خريج', 'جامعي', 'مدرسة'])
+    .isIn(['خريج', 'جامعي', 'مدرسة', 'graduate', 'university', 'school'])
     .withMessage('Invalid education level'),
   body('occupation')
     .trim()
@@ -112,6 +112,8 @@ const martyrValidation = [
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('NEW Validation errors:', errors.array());
+    console.log('NEW Request body:', req.body);
     return res.status(400).json({ 
       error: 'Validation failed', 
       details: errors.array() 

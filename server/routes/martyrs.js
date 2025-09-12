@@ -45,6 +45,22 @@ function normalizePlaceOfMartyrdom(placeData) {
   return null;
 }
 
+// Helper function to normalize education level to Arabic
+function normalizeEducationLevel(educationLevel) {
+  if (!educationLevel) return null;
+  
+  const educationMap = {
+    'university': 'جامعي',
+    'graduate': 'خريج', 
+    'school': 'مدرسة',
+    'جامعي': 'جامعي',
+    'خريج': 'خريج',
+    'مدرسة': 'مدرسة'
+  };
+  
+  return educationMap[educationLevel] || educationLevel;
+}
+
 // GET /api/martyrs - Get all approved martyrs (public)
 router.get('/', catchAsync(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -133,14 +149,41 @@ router.get('/stats/summary', catchAsync(async (req, res) => {
 router.get('/:id', catchAsync(async (req, res) => {
     const { id } = req.params;
     
-  const query = `
-    SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
-           education_level, university_name, faculty, department,
-           school_state, school_locality, spouse, children, occupation, bio, image_url, 
-           created_at
-    FROM martyrs 
-    WHERE id = ? AND status = "approved"
-  `;
+    // Check if admin token is provided
+    let isAdmin = false;
+    try {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        if (decoded && (decoded.role === 'admin' || decoded.role === 'super_admin')) {
+          isAdmin = true;
+        }
+      }
+    } catch (error) {
+      // Token verification failed, continue as public user
+      isAdmin = false;
+    }
+    
+    // Build query based on admin status
+    let query, whereClause;
+    if (isAdmin) {
+      // Admin can see all martyrs
+      whereClause = 'WHERE id = ?';
+    } else {
+      // Public users only see approved martyrs
+      whereClause = 'WHERE id = ? AND status = "approved"';
+    }
+    
+    query = `
+      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+             education_level, university_name, faculty, department,
+             school_state, school_locality, spouse, children, occupation, bio, image_url, 
+             approved, status, created_at, updated_at
+      FROM martyrs 
+      ${whereClause}
+    `;
   
   const [martyrs] = await pool.execute(query, [id]);
 
@@ -187,6 +230,9 @@ router.post('/public',
       return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
+    // Normalize education level to Arabic
+    const normalizedEducationLevel = normalizeEducationLevel(education_level);
+    
     // Convert children to integer or null
     let childrenCount = null;
     if (children && children.trim() !== '') {
@@ -210,7 +256,7 @@ router.post('/public',
       name_en,
       date_of_martyrdom,
       normalizedPlace,
-      education_level,
+      normalizedEducationLevel,
       university_name || null,
       faculty || null,
       department || null,
@@ -273,6 +319,9 @@ router.post('/',
       return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
+    // Normalize education level to Arabic
+    const normalizedEducationLevel = normalizeEducationLevel(education_level);
+    
     const query = `
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
@@ -287,7 +336,7 @@ router.post('/',
       name_en,
       date_of_martyrdom,
       normalizedPlace,
-      education_level,
+      normalizedEducationLevel,
       university_name || null,
       faculty || null,
       department || null,
@@ -365,6 +414,9 @@ router.put('/:id',
       return res.status(400).json({ error: 'Invalid place of martyrdom format' });
     }
     
+    // Normalize education level to Arabic
+    const normalizedEducationLevel = normalizeEducationLevel(education_level);
+    
     const query = `
       UPDATE martyrs SET 
         name_ar = ?, name_en = ?, date_of_martyrdom = ?, place_of_martyrdom = ?,
@@ -379,7 +431,7 @@ router.put('/:id',
       name_en,
       date_of_martyrdom,
       normalizedPlace,
-      education_level,
+      normalizedEducationLevel,
       university_name || null,
       faculty || null,
       department || null,
