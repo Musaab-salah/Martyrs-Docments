@@ -155,15 +155,23 @@ process.on('SIGINT', async () => {
 // Start server
 const startServer = async () => {
   try {
+    console.log('🚀 Starting Martyrs Archive Server...');
+
     // Test database connection
+    console.log('📊 Testing database connection...');
     try {
       await testConnection();
+      console.log('✅ Database connection successful');
     } catch (dbError) {
       console.warn('⚠️  Database connection failed:', dbError.message);
     }
-    
+
     // Start server
+    console.log(`🌐 Starting server on port ${PORT}...`);
     app.listen(PORT, () => {
+      console.log(`🎯 Server is running on port ${PORT}`);
+      console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🔗 Environment: ${NODE_ENV}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

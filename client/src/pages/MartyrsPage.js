@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import ImageWithFallback from '../components/ImageWithFallback';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import MartyrsCount from '../components/MartyrsCount';
 import { martyrsApi } from '../services/api';
 import { formatDateToGregorian } from '../utils/dateFormatter';
 
@@ -80,7 +81,9 @@ const MartyrsPage = () => {
             <h1 className="text-responsive-3xl font-bold text-primary-800">الشهداء</h1>
             <p className="text-responsive-lg text-gray-600">إحياء ذكرى من ضحوا بحياتهم</p>
           </div>
-          
+
+          <MartyrsCount />
+
           {martyrs.length === 0 ? (
             <div className="card max-w-md mx-auto">
               <div className="card-body text-center space-y-4">
@@ -187,6 +190,16 @@ const MartyrsPage = () => {
                           </svg>
                           <span className="text-gray-700">{martyr.occupation}</span>
                         </div>
+
+                        {martyr.facebook_link && (
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            <span className="text-blue-600 text-xs">صفحة الفيسبوك</span>
+                          </div>
+                        )}
+
                       </div>
                     </div>
                   </Link>

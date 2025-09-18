@@ -61,6 +61,15 @@ function normalizeEducationLevel(educationLevel) {
   return educationMap[educationLevel] || educationLevel;
 }
 
+// Define columns list (excluding google_drive_link)
+const MARTYR_COLUMNS = `
+  id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
+  education_level, university_name, faculty, department,
+  school_state, school_locality, spouse, children, occupation,
+  bio, image_url, facebook_link, status, approved,
+  created_at, updated_at
+`;
+
 // GET /api/martyrs - Get all approved martyrs (public)
 router.get('/', catchAsync(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -101,7 +110,7 @@ router.get('/', catchAsync(async (req, res) => {
   const totalItems = countResult[0].total;
 
   // Get martyrs with pagination
-  const martyrQuery = `SELECT * FROM martyrs WHERE ${whereClause} ORDER BY date_of_martyrdom DESC LIMIT ${limit} OFFSET ${offset}`;
+  const martyrQuery = `SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE ${whereClause} ORDER BY date_of_martyrdom DESC LIMIT ${limit} OFFSET ${offset}`;
   const [martyrs] = await pool.execute(martyrQuery, params);
 
   const totalPages = Math.ceil(totalItems / limit);
@@ -145,6 +154,12 @@ router.get('/stats/summary', catchAsync(async (req, res) => {
   });
 }));
 
+// GET /api/martyrs/count - Get total count of approved martyrs
+router.get('/count', catchAsync(async (req, res) => {
+  const [result] = await pool.execute('SELECT COUNT(*) as total FROM martyrs WHERE status = "approved"');
+  res.json({ totalMartyrs: result[0].total });
+}));
+
 // GET /api/martyrs/:id - Get a specific martyr
 router.get('/:id', catchAsync(async (req, res) => {
     const { id } = req.params;
@@ -177,11 +192,11 @@ router.get('/:id', catchAsync(async (req, res) => {
     }
     
     query = `
-      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
              education_level, university_name, faculty, department,
-             school_state, school_locality, spouse, children, occupation, bio, image_url, 
-             approved, status, created_at, updated_at
-      FROM martyrs 
+             school_state, school_locality, spouse, children, occupation, bio, image_url,
+             facebook_link, approved, status, created_at, updated_at
+      FROM martyrs
       ${whereClause}
     `;
   
@@ -195,9 +210,9 @@ router.get('/:id', catchAsync(async (req, res) => {
 }));
 
 // POST /api/martyrs/public - Add a new martyr (public endpoint)
-router.post('/public', 
-  upload.single('image'), 
-  martyrValidation, 
+router.post('/public',
+  upload.single('image'),
+  martyrValidation,
   handleValidationErrors,
   handleUploadError,
   catchAsync(async (req, res) => {
@@ -215,7 +230,8 @@ router.post('/public',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      facebook_link
     } = req.body;
     
     // Handle image upload
@@ -246,9 +262,9 @@ router.post('/public',
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
-        school_state, school_locality, spouse, children, occupation, bio, image_url, 
-        status, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', FALSE)
+        school_state, school_locality, spouse, children, occupation, bio, image_url,
+        facebook_link, status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', FALSE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -266,27 +282,28 @@ router.post('/public',
       childrenCount,
       occupation,
       bio || null,
-      image_url
+      image_url,
+      facebook_link || null
     ]);
-    
+
     // Get the inserted martyr
     const [newMartyr] = await pool.execute(
-      'SELECT * FROM martyrs WHERE id = ?',
+      `SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`,
       [result.insertId]
     );
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: 'Martyr added successfully',
       martyr: newMartyr[0]
     });
 }));
 
 // POST /api/martyrs - Add a new martyr (admin endpoint)
-router.post('/', 
+router.post('/',
   authenticateToken,
   requireAdmin,
-  upload.single('image'), 
-  martyrValidation, 
+  upload.single('image'),
+  martyrValidation,
   handleValidationErrors,
   handleUploadError,
   catchAsync(async (req, res) => {
@@ -304,7 +321,8 @@ router.post('/',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      facebook_link
     } = req.body;
 
     // Handle image upload
@@ -326,9 +344,9 @@ router.post('/',
       INSERT INTO martyrs (
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
-        school_state, school_locality, spouse, children, occupation, bio, image_url, 
-        status, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', TRUE)
+        school_state, school_locality, spouse, children, occupation, bio, image_url,
+        facebook_link, status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', TRUE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -346,34 +364,35 @@ router.post('/',
       children ? parseInt(children, 10) || null : null,
       occupation,
       bio || null,
-      image_url
+      image_url,
+      facebook_link || null
     ]);
-    
+
     // Get the inserted martyr
     const [newMartyr] = await pool.execute(
-      'SELECT * FROM martyrs WHERE id = ?',
+      `SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`,
       [result.insertId]
     );
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Martyr added successfully',
       martyr: newMartyr[0]
     });
 }));
 
 // PUT /api/martyrs/:id - Update a martyr
-router.put('/:id', 
+router.put('/:id',
   authenticateToken,
   requireAdmin,
-  upload.single('image'), 
-  martyrValidation, 
+  upload.single('image'),
+  martyrValidation,
   handleValidationErrors,
   handleUploadError,
   catchAsync(async (req, res) => {
     const { id } = req.params;
-    
+
     // Check if martyr exists
-    const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
+    const [existing] = await pool.execute(`SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`, [id]);
     if (existing.length === 0) {
       return res.status(404).json({ error: 'Martyr not found' });
     }
@@ -392,9 +411,10 @@ router.put('/:id',
       spouse,
       children,
       occupation,
-      bio
+      bio,
+      facebook_link
     } = req.body;
-    
+
     // Handle image upload
     let image_url = existing[0].image_url;
     if (req.file) {
@@ -418,11 +438,11 @@ router.put('/:id',
     const normalizedEducationLevel = normalizeEducationLevel(education_level);
     
     const query = `
-      UPDATE martyrs SET 
+      UPDATE martyrs SET
         name_ar = ?, name_en = ?, date_of_martyrdom = ?, place_of_martyrdom = ?,
         education_level = ?, university_name = ?, faculty = ?, department = ?,
-        school_state = ?, school_locality = ?, spouse = ?, children = ?, 
-        occupation = ?, bio = ?, image_url = ?
+        school_state = ?, school_locality = ?, spouse = ?, children = ?,
+        occupation = ?, bio = ?, image_url = ?, facebook_link = ?
       WHERE id = ?
     `;
     
@@ -442,12 +462,13 @@ router.put('/:id',
       occupation,
       bio || null,
       image_url,
+      facebook_link || null,
       id
     ]);
     
     // Get the updated martyr
     const [updatedMartyr] = await pool.execute(
-      'SELECT * FROM martyrs WHERE id = ?',
+      `SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`,
       [id]
     );
 
@@ -465,7 +486,7 @@ router.delete('/:id',
     const { id } = req.params;
     
   // Check if martyr exists
-  const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
+  const [existing] = await pool.execute(`SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`, [id]);
   if (existing.length === 0) {
       return res.status(404).json({ error: 'Martyr not found' });
     }
@@ -536,7 +557,7 @@ router.get('/admin/all',
   const total = countResult[0].total;
 
   // Get martyrs with pagination (admin view includes all fields)
-  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, education_level, university_name, faculty, department, school_state, school_locality, spouse, children, occupation, bio, image_url, approved, status, created_at, updated_at`;
+  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, education_level, university_name, faculty, department, school_state, school_locality, spouse, children, occupation, bio, image_url, facebook_link, approved, status, created_at, updated_at`;
 
   const query = `SELECT ${selectFields} FROM martyrs ${whereClause}ORDER BY created_at DESC, name_ar ASC LIMIT ? OFFSET ?`;
   
@@ -577,7 +598,7 @@ router.patch('/:id/approve',
   
   
   // Check if martyr exists
-  const [existing] = await pool.execute('SELECT * FROM martyrs WHERE id = ?', [id]);
+  const [existing] = await pool.execute(`SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`, [id]);
   if (existing.length === 0) {
     return res.status(404).json({ error: 'Martyr not found' });
   }
@@ -606,7 +627,7 @@ router.patch('/:id/approve',
   
   // Get the updated martyr
   const [updatedMartyr] = await pool.execute(
-    'SELECT * FROM martyrs WHERE id = ?',
+    `SELECT ${MARTYR_COLUMNS} FROM martyrs WHERE id = ?`,
     [id]
   );
 
@@ -631,11 +652,11 @@ router.get('/admin/:id',
     const { id } = req.params;
     
     const query = `
-      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, 
+      SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
              education_level, university_name, faculty, department,
-             school_state, school_locality, spouse, children, occupation, bio, image_url, 
-             approved, status, created_at, updated_at
-      FROM martyrs 
+             school_state, school_locality, spouse, children, occupation, bio, image_url,
+             facebook_link, approved, status, created_at, updated_at
+      FROM martyrs
       WHERE id = ?
     `;
     

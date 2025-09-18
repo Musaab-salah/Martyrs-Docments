@@ -233,9 +233,9 @@ module.exports = async (req, res) => {
               `INSERT INTO martyrs (
                 name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
                 education_level, university_name, faculty, department,
-                school_state, school_locality, spouse, children, 
-                occupation, bio, image_url, status, approved
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                school_state, school_locality, spouse, children,
+                occupation, bio, image_url, facebook_link, status, approved
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 martyrData.name_ar.trim(),
                 martyrData.name_en.trim(),
@@ -252,6 +252,7 @@ module.exports = async (req, res) => {
                 martyrData.occupation || null,
                 martyrData.bio || null,
                 photoPath,
+                martyrData.facebook_link || null,
                 'pending',
                 false
               ]

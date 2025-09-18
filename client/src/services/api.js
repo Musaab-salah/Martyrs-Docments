@@ -192,6 +192,13 @@ export const martyrsApi = {
     return api.get('/stats/overview');
   },
 
+  // Get martyrs count
+  getCount: () => {
+    if (USE_MOCK_API) return mockMartyrsApi.getCount();
+    const api = new ApiService();
+    return api.get('/martyrs/count');
+  },
+
   // Add a new martyr (public endpoint)
   addPublic: (formData) => {
     if (USE_MOCK_API) return mockMartyrsApi.addPublic(formData);

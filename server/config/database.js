@@ -20,10 +20,15 @@ let pool = null;
 // Only create pool if MySQL is available
 const createPool = async () => {
   try {
+    console.log('🔄 Creating database pool...');
     pool = mysql.createPool(dbConfig);
+    console.log('✅ Database pool created');
+
     // Test the connection immediately
+    console.log('🔗 Testing initial connection...');
     const connection = await pool.getConnection();
     connection.release();
+    console.log('✅ Initial connection test successful');
     return true;
   } catch (error) {
     console.warn('⚠️  Could not create database pool:', error.message);
@@ -33,7 +38,12 @@ const createPool = async () => {
 };
 
 // Initialize pool
-createPool();
+console.log('📦 Initializing database pool...');
+createPool().then(() => {
+  console.log('📦 Database pool initialization complete');
+}).catch((err) => {
+  console.error('📦 Database pool initialization failed:', err);
+});
 
 // Test database connection
 const testConnection = async () => {

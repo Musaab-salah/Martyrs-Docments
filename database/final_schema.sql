@@ -28,6 +28,7 @@ CREATE TABLE martyrs (
   occupation VARCHAR(255) NOT NULL,
   bio TEXT NULL,
   image_url VARCHAR(500) NULL,
+  facebook_link VARCHAR(500) NULL COMMENT 'Facebook profile or page URL',
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending' COMMENT 'Status of martyr record',
   approved BOOLEAN DEFAULT FALSE COMMENT 'Whether the martyr has been approved by admin (for backward compatibility)',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

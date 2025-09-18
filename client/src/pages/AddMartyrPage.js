@@ -62,10 +62,12 @@ const AddMartyrPage = () => {
     children: '',
     occupation: '',
     bio: '',
+    facebook_link: '',
     image: null
   });
 
   const [markerPosition, setMarkerPosition] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const navigate = useNavigate(); // Initialize useNavigate
 
   const handleInputChange = (e) => {
@@ -89,6 +91,7 @@ const AddMartyrPage = () => {
         ...prev,
         [name]: value
       }));
+
     }
   };
 
@@ -101,7 +104,8 @@ const AddMartyrPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+
     const formDataToSend = new FormData();
     Object.keys(formData).forEach(key => {
       if (key === 'place_of_martyrdom') {
@@ -135,6 +139,7 @@ const AddMartyrPage = () => {
         children: '',
         occupation: '',
         bio: '',
+        facebook_link: '',
         image: null
       });
       setMarkerPosition(null);
@@ -420,6 +425,25 @@ const AddMartyrPage = () => {
                 placeholder="اكتب نبذة مختصرة عن الشهيد..."
               />
             </div>
+
+            {/* Facebook Link */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                رابط صفحة الفيسبوك
+              </label>
+              <input
+                type="url"
+                name="facebook_link"
+                value={formData.facebook_link}
+                onChange={handleInputChange}
+                placeholder="https://www.facebook.com/profile..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-sm text-gray-600 mt-1">
+                اختياري - أدخل رابط صفحة أو ملف الفيسبوك الشخصي للشهيد
+              </p>
+            </div>
+
 
             {/* Image Upload */}
             <div>

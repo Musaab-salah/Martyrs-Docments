@@ -105,6 +105,14 @@ class MockApiService {
         }
         break;
 
+      case '/api/martyrs/count':
+        if (method === 'GET') {
+          return {
+            totalMartyrs: this.martyrs.filter(m => m.approved).length
+          };
+        }
+        break;
+
       case '/api/auth/login':
         if (method === 'POST') {
           const credentials = JSON.parse(options.body);

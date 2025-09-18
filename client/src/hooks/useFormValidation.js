@@ -20,6 +20,11 @@ export const useFormValidation = (initialValues = {}, validationRules = {}) => {
       const date = new Date(value);
       return !isNaN(date.getTime()) ? null : 'Invalid date format';
     },
+    googleDriveUrl: (value) => {
+      if (!value || value.trim() === '') return null; // Optional field
+      const googleDriveRegex = /^https:\/\/drive\.google\.com\/.*/;
+      return googleDriveRegex.test(value) ? null : 'Please enter a valid Google Drive URL starting with https://drive.google.com/';
+    },
     ...validationRules
   };
 
