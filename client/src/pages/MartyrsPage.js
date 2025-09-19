@@ -12,17 +12,26 @@ const MartyrsPage = () => {
   const [martyrs, setMartyrs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 9; // 3x3 grid for desktop
 
   useEffect(() => {
-    fetchMartyrs();
-  }, []);
+    fetchMartyrs(currentPage);
+  }, [currentPage]);
 
-  const fetchMartyrs = async () => {
+  const fetchMartyrs = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await martyrsApi.getAll();
-      setMartyrs(data.martyrs);
+      const data = await martyrsApi.getAll({ page, limit: itemsPerPage });
+      setMartyrs(data.martyrs || []);
+      if (data.pagination) {
+        setCurrentPage(data.pagination.currentPage);
+        setTotalPages(data.pagination.totalPages);
+        setTotalItems(data.pagination.totalItems);
+      }
     } catch (err) {
       setError(err.message || 'حدث خطأ أثناء تحميل بيانات الشهداء');
     } finally {
@@ -39,6 +48,43 @@ const MartyrsPage = () => {
       'other': 'أخرى'
     };
     return educationMap[level] || level;
+  };
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust startPage if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
   };
 
   if (loading) {
@@ -62,7 +108,7 @@ const MartyrsPage = () => {
           <div className="container-responsive">
             <ErrorMessage 
               error={error} 
-              onRetry={fetchMartyrs}
+              onRetry={() => fetchMartyrs(currentPage)}
               title="خطأ في تحميل البيانات"
             />
           </div>
@@ -97,8 +143,9 @@ const MartyrsPage = () => {
               </div>
             </div>
           ) : (
-            <div className="grid-responsive">
-              {martyrs.map((martyr) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {martyrs.map((martyr) => {
                 // Handle place_of_martyrdom - it's already an object from API
                 let placeData;
                 if (typeof martyr.place_of_martyrdom === 'object' && martyr.place_of_martyrdom !== null) {
@@ -204,8 +251,63 @@ const MartyrsPage = () => {
                     </div>
                   </Link>
                 );
-              })}
-            </div>
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col items-center space-y-4">
+                  {/* Page Info */}
+                  <div className="text-sm text-gray-600">
+                    عرض {martyrs.length} من أصل {totalItems} شهيد - الصفحة {currentPage} من {totalPages}
+                  </div>
+                  
+                  {/* Pagination Buttons */}
+                  <div className="flex items-center justify-center space-x-1 space-x-reverse">
+                    {/* Previous Button */}
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                        currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-blue-600'
+                      }`}
+                    >
+                      السابق
+                    </button>
+                    
+                    {/* Page Numbers */}
+                    {getPageNumbers().map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          pageNum === currentPage
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-blue-600'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    
+                    {/* Next Button */}
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:text-blue-600'
+                      }`}
+                    >
+                      التالي
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

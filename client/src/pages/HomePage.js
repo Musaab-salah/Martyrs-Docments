@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
+import VideoGrid from '../components/VideoGrid';
 
 const HomePage = () => (
   <div className="min-h-screen bg-white" dir="rtl">
@@ -81,6 +82,13 @@ const HomePage = () => (
                   </Link>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Video Grid Section */}
+          <div className="card max-w-6xl mx-auto mt-12">
+            <div className="card-body section-padding-sm">
+              <VideoGrid limit={6} showTitle={true} />
             </div>
           </div>
         </div>

@@ -16,6 +16,7 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const statsRoutes = require('./routes/stats');
 const tributesRoutes = require('./routes/tributes');
+const videoRoutes = require('./routes/video.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -127,6 +128,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/tributes', tributesRoutes);
+app.use('/api/videos', videoRoutes);
 
 
 

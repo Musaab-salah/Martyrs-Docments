@@ -66,8 +66,8 @@ const MARTYR_COLUMNS = `
   id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
   education_level, university_name, faculty, department,
   school_state, school_locality, spouse, children, occupation,
-  bio, image_url, facebook_link, status, approved,
-  created_at, updated_at
+  bio, image_url, facebook_link, youtube_playlist, youtube_display_type,
+  status, approved, created_at, updated_at
 `;
 
 // GET /api/martyrs - Get all approved martyrs (public)
@@ -195,7 +195,7 @@ router.get('/:id', catchAsync(async (req, res) => {
       SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
              education_level, university_name, faculty, department,
              school_state, school_locality, spouse, children, occupation, bio, image_url,
-             facebook_link, approved, status, created_at, updated_at
+             facebook_link, youtube_playlist, youtube_display_type, approved, status, created_at, updated_at
       FROM martyrs
       ${whereClause}
     `;
@@ -231,7 +231,9 @@ router.post('/public',
       children,
       occupation,
       bio,
-      facebook_link
+      facebook_link,
+      youtube_playlist,
+      youtube_display_type
     } = req.body;
     
     // Handle image upload
@@ -263,8 +265,8 @@ router.post('/public',
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
         school_state, school_locality, spouse, children, occupation, bio, image_url,
-        facebook_link, status, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', FALSE)
+        facebook_link, youtube_playlist, youtube_display_type, status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', FALSE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -283,7 +285,9 @@ router.post('/public',
       occupation,
       bio || null,
       image_url,
-      facebook_link || null
+      facebook_link || null,
+      youtube_playlist || null,
+      youtube_display_type || 'link'
     ]);
 
     // Get the inserted martyr
@@ -322,7 +326,9 @@ router.post('/',
       children,
       occupation,
       bio,
-      facebook_link
+      facebook_link,
+      youtube_playlist,
+      youtube_display_type
     } = req.body;
 
     // Handle image upload
@@ -345,8 +351,8 @@ router.post('/',
         name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
         education_level, university_name, faculty, department,
         school_state, school_locality, spouse, children, occupation, bio, image_url,
-        facebook_link, status, approved
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', TRUE)
+        facebook_link, youtube_playlist, youtube_display_type, status, approved
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', TRUE)
     `;
     
     const [result] = await pool.execute(query, [
@@ -365,7 +371,9 @@ router.post('/',
       occupation,
       bio || null,
       image_url,
-      facebook_link || null
+      facebook_link || null,
+      youtube_playlist || null,
+      youtube_display_type || 'link'
     ]);
 
     // Get the inserted martyr
@@ -412,7 +420,9 @@ router.put('/:id',
       children,
       occupation,
       bio,
-      facebook_link
+      facebook_link,
+      youtube_playlist,
+      youtube_display_type
     } = req.body;
 
     // Handle image upload
@@ -442,7 +452,8 @@ router.put('/:id',
         name_ar = ?, name_en = ?, date_of_martyrdom = ?, place_of_martyrdom = ?,
         education_level = ?, university_name = ?, faculty = ?, department = ?,
         school_state = ?, school_locality = ?, spouse = ?, children = ?,
-        occupation = ?, bio = ?, image_url = ?, facebook_link = ?
+        occupation = ?, bio = ?, image_url = ?, facebook_link = ?, 
+        youtube_playlist = ?, youtube_display_type = ?
       WHERE id = ?
     `;
     
@@ -463,6 +474,8 @@ router.put('/:id',
       bio || null,
       image_url,
       facebook_link || null,
+      youtube_playlist || null,
+      youtube_display_type || 'link',
       id
     ]);
     
@@ -557,7 +570,7 @@ router.get('/admin/all',
   const total = countResult[0].total;
 
   // Get martyrs with pagination (admin view includes all fields)
-  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, education_level, university_name, faculty, department, school_state, school_locality, spouse, children, occupation, bio, image_url, facebook_link, approved, status, created_at, updated_at`;
+  const selectFields = `id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom, education_level, university_name, faculty, department, school_state, school_locality, spouse, children, occupation, bio, image_url, facebook_link, youtube_playlist, youtube_display_type, approved, status, created_at, updated_at`;
 
   const query = `SELECT ${selectFields} FROM martyrs ${whereClause}ORDER BY created_at DESC, name_ar ASC LIMIT ? OFFSET ?`;
   
@@ -655,7 +668,7 @@ router.get('/admin/:id',
       SELECT id, name_ar, name_en, date_of_martyrdom, place_of_martyrdom,
              education_level, university_name, faculty, department,
              school_state, school_locality, spouse, children, occupation, bio, image_url,
-             facebook_link, approved, status, created_at, updated_at
+             facebook_link, youtube_playlist, youtube_display_type, approved, status, created_at, updated_at
       FROM martyrs
       WHERE id = ?
     `;

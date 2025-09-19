@@ -105,7 +105,25 @@ const martyrValidation = [
   body('latitude')
     .optional()
     .isFloat({ min: -90, max: 90 })
-    .withMessage('Latitude must be a valid number between -90 and 90')
+    .withMessage('Latitude must be a valid number between -90 and 90'),
+  body('youtube_playlist')
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (value === '' || value === null || value === undefined) {
+        return true; // Allow empty values
+      }
+      // Basic YouTube playlist URL validation
+      const youtubePlaylistRegex = /^https:\/\/(www\.)?youtube\.com\/playlist\?list=[\w-]+/;
+      if (!youtubePlaylistRegex.test(value)) {
+        throw new Error('YouTube playlist must be a valid YouTube playlist URL');
+      }
+      return true;
+    }),
+  body('youtube_display_type')
+    .optional()
+    .isIn(['link', 'embed'])
+    .withMessage('YouTube display type must be either "link" or "embed"')
 ];
 
 // Handle validation errors

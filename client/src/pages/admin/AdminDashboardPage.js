@@ -260,12 +260,20 @@ const AdminDashboardPage = () => {
                   </select>
                 </div>
                 <div className="form-group flex items-end">
-                  <button
-                    onClick={() => window.location.href = '/admin/add-martyr'}
-                    className="btn btn-primary w-full"
-                  >
-                    إضافة شهيد جديد
-                  </button>
+                  <div className="space-y-2 w-full">
+                    <button
+                      onClick={() => window.location.href = '/admin/add-martyr'}
+                      className="btn btn-primary w-full"
+                    >
+                      إضافة شهيد جديد
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/admin/videos'}
+                      className="btn btn-secondary w-full"
+                    >
+                      إدارة الفيديوهات
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

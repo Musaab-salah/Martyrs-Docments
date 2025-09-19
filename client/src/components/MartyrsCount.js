@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Users } from 'lucide-react';
 import { martyrsApi } from '../services/api';
 
 const MartyrsCount = () => {
@@ -25,10 +26,15 @@ const MartyrsCount = () => {
 
   if (loading) {
     return (
-      <div className="p-4 bg-blue-100 rounded-lg text-center mb-4">
-        <div className="animate-pulse">
-          <h2 className="text-xl font-bold text-blue-800">عدد الشهداء</h2>
-          <div className="text-3xl mt-2 text-blue-600">...</div>
+      <div className="flex justify-center mb-8">
+        <div className="w-full md:w-1/3 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center transition duration-300 hover:bg-gray-100">
+          <div className="flex flex-col items-center">
+            <div className="animate-pulse">
+              <Users className="w-10 h-10 text-blue-500 mb-3" />
+              <h2 className="text-lg mt-2 font-medium text-gray-700">عدد الشهداء</h2>
+              <div className="text-5xl font-extrabold text-blue-600">...</div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -36,17 +42,27 @@ const MartyrsCount = () => {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-100 rounded-lg text-center mb-4">
-        <h2 className="text-xl font-bold text-red-800">عدد الشهداء</h2>
-        <p className="text-red-600 mt-2">{error}</p>
+      <div className="flex justify-center mb-8">
+        <div className="w-full md:w-1/3 bg-white border border-red-200 rounded-xl shadow-sm p-8 text-center transition duration-300 hover:bg-red-50">
+          <div className="flex flex-col items-center">
+            <Users className="w-10 h-10 text-red-500 mb-3" />
+            <h2 className="text-lg mt-2 font-medium text-gray-700">عدد الشهداء</h2>
+            <p className="text-red-600 text-sm mt-2">{error}</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 bg-blue-100 rounded-lg text-center mb-4">
-      <h2 className="text-xl font-bold text-blue-800">عدد الشهداء</h2>
-      <p className="text-3xl mt-2 text-blue-600 font-bold">{count.toLocaleString('ar-SA')}</p>
+    <div className="flex justify-center mb-8">
+      <div className="w-full md:w-1/3 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center transition duration-300 hover:bg-gray-100">
+        <div className="flex flex-col items-center">
+          <Users className="w-10 h-10 text-blue-500 mb-3" />
+          <h2 className="text-lg mt-2 font-medium text-gray-700">عدد الشهداء</h2>
+          <p className="text-5xl font-extrabold text-blue-600">{count.toLocaleString('ar-SA')}</p>
+        </div>
+      </div>
     </div>
   );
 };

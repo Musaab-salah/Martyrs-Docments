@@ -23,7 +23,9 @@ const AdminAddMartyrPage = () => {
     children: '',
     occupation: '',
     bio: '',
-    facebook_link: ''
+    facebook_link: '',
+    youtube_playlist: '',
+    youtube_display_type: 'link'
   });
   const [imageFile, setImageFile] = useState(null);
   const [markerPosition, setMarkerPosition] = useState(null);
@@ -446,6 +448,42 @@ const AdminAddMartyrPage = () => {
               </p>
             </div>
 
+            {/* YouTube Playlist */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  رابط قائمة تشغيل يوتيوب
+                </label>
+                <input
+                  type="url"
+                  name="youtube_playlist"
+                  value={formData.youtube_playlist}
+                  onChange={handleInputChange}
+                  placeholder="https://www.youtube.com/playlist?list=..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  اختياري - أدخل رابط قائمة تشغيل يوتيوب للشهيد
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  طريقة العرض
+                </label>
+                <select
+                  name="youtube_display_type"
+                  value={formData.youtube_display_type}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="link">رابط</option>
+                  <option value="embed">مدمج</option>
+                </select>
+                <p className="text-sm text-gray-600 mt-1">
+                  كيفية عرض قائمة التشغيل
+                </p>
+              </div>
+            </div>
 
             {/* Image Upload */}
             <div>

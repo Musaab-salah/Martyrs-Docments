@@ -14,6 +14,7 @@ import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminAddMartyrPage from './pages/admin/AdminAddMartyrPage';
 import AdminEditMartyrPage from './pages/admin/AdminEditMartyrPage';
+import Videos from './pages/admin/Videos';
 
 // Import components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -53,6 +54,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminEditMartyrPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/videos" 
+            element={
+              <ProtectedRoute>
+                <Videos />
               </ProtectedRoute>
             } 
           />
