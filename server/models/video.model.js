@@ -30,41 +30,59 @@ class VideoModel {
     const { page = 1, limit = 20, search = '' } = options;
     const offset = (page - 1) * limit;
 
-    let whereClause = '';
-    let params = [];
+    try {
+      let whereClause = '';
+      let params = [];
 
-    if (search) {
-      whereClause = 'WHERE title LIKE ?';
-      params.push(`%${search}%`);
-    }
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM videos ${whereClause}`;
-    const [countResult] = await pool.execute(countQuery, params);
-    const total = countResult[0].total;
-
-    // Get videos with pagination
-    const query = `
-      SELECT id, title, youtubeLink, createdAt, updatedAt
-      FROM videos 
-      ${whereClause}
-      ORDER BY createdAt DESC 
-      LIMIT ? OFFSET ?
-    `;
-
-    const [videos] = await pool.execute(query, [...params, limit, offset]);
-
-    return {
-      videos,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit,
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
+      if (search && search.trim()) {
+        whereClause = 'WHERE title LIKE ?';
+        params.push(`%${search.trim()}%`);
       }
-    };
+
+      // Get total count
+      const countQuery = `SELECT COUNT(*) as total FROM videos ${whereClause}`;
+      const [countResult] = await pool.execute(countQuery, params);
+      const total = countResult[0].total;
+
+      // Get videos with pagination using separate queries to avoid parameter binding issues
+      let videosQuery;
+      let videosParams;
+
+      if (search && search.trim()) {
+        videosQuery = `
+          SELECT id, title, youtubeLink, createdAt, updatedAt
+          FROM videos
+          WHERE title LIKE ?
+          ORDER BY createdAt DESC
+          LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        videosParams = [`%${search.trim()}%`];
+      } else {
+        videosQuery = `
+          SELECT id, title, youtubeLink, createdAt, updatedAt
+          FROM videos
+          ORDER BY createdAt DESC
+          LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+        `;
+        videosParams = [];
+      }
+
+      const [videos] = await pool.execute(videosQuery, videosParams);
+
+      return {
+        videos,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: parseInt(limit),
+          hasNextPage: page < Math.ceil(total / limit),
+          hasPrevPage: page > 1
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to get videos: ${error.message}`);
+    }
   }
 
   // Get video by ID
@@ -133,13 +151,13 @@ class VideoModel {
   static async getRecent(limit = 6) {
     const query = `
       SELECT id, title, youtubeLink, createdAt
-      FROM videos 
-      ORDER BY createdAt DESC 
-      LIMIT ?
+      FROM videos
+      ORDER BY createdAt DESC
+      LIMIT ${parseInt(limit)}
     `;
 
     try {
-      const [videos] = await pool.execute(query, [limit]);
+      const [videos] = await pool.execute(query, []);
       return videos;
     } catch (error) {
       throw new Error(`Failed to get recent videos: ${error.message}`);

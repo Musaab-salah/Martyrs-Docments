@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
 const Videos = () => {
+  const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -158,7 +161,16 @@ const Videos = () => {
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">إدارة الفيديوهات</h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/admin/dashboard')} // Navigate to dashboard
+              className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title="العودة للوحة التحكم"
+            >
+              <ArrowRight className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">إدارة الفيديوهات</h1>
+          </div>
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"

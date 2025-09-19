@@ -220,7 +220,6 @@ const MartyrDetailPage = () => {
             )}
 
             {/* YouTube Playlist */}
-            {console.log('DEBUG: martyr.youtube_playlist =', martyr.youtube_playlist, 'type:', typeof martyr.youtube_playlist)}
             {martyr.youtube_playlist && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-green-800 mb-4">مقاطع فيديو</h2>
@@ -228,8 +227,35 @@ const MartyrDetailPage = () => {
                   {martyr.youtube_display_type === 'embed' ? (
                     <div className="w-full h-full rounded-lg shadow-lg aspect-video">
                       <iframe
-                        src={martyr.youtube_playlist.replace('playlist?list=', 'embed/videoseries?list=')}
-                        title="YouTube Playlist"
+                        src={(() => {
+                          try {
+                            const url = martyr.youtube_playlist;
+                            // Handle playlist URLs
+                            if (url.includes('playlist?list=')) {
+                              const listId = url.split('playlist?list=')[1].split('&')[0];
+                              return `https://www.youtube.com/embed/videoseries?list=${listId}`;
+                            }
+                            // Handle individual video URLs
+                            if (url.includes('youtube.com/watch?v=')) {
+                              const videoId = url.split('watch?v=')[1].split('&')[0];
+                              return `https://www.youtube.com/embed/${videoId}`;
+                            }
+                            if (url.includes('youtu.be/')) {
+                              const videoId = url.split('youtu.be/')[1].split('?')[0];
+                              return `https://www.youtube.com/embed/${videoId}`;
+                            }
+                            // If already embed URL, return as is
+                            if (url.includes('youtube.com/embed/')) {
+                              return url;
+                            }
+                            // Fallback
+                            return url;
+                          } catch (error) {
+                            console.error('Error parsing YouTube URL:', error);
+                            return martyr.youtube_playlist;
+                          }
+                        })()}
+                        title="YouTube Content"
                         className="w-full h-full rounded-lg shadow-lg aspect-video"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
